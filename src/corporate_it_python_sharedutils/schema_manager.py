@@ -1,0 +1,350 @@
+import logging
+from sqlalchemy import text, inspect
+from datetime import datetime
+from dateutil.parser import parse
+
+from decimal import Decimal
+from typing import Any, Dict
+
+from decimal import Decimal, InvalidOperation
+from typing import Any, Dict
+
+import json
+
+import pandas as pd
+from sqlalchemy import create_engine, text, Table, MetaData
+from sqlalchemy import MetaData, Table, select, and_
+
+from sqlalchemy import select, and_
+
+def flatten_json(y, parent_key="", sep="_"):
+    items = []
+    for k, v in y.items():
+        new_key = f"{parent_key}{sep}{k}" if parent_key else k
+        if isinstance(v, dict):
+            items.extend(flatten_json(v, new_key, sep=sep).items())
+        else:
+            items.append((new_key, v))
+    return dict(items)
+
+
+def lowercase_keys(obj):
+    """
+    Recursively lowercases all dictionary keys.
+    Works for dicts, lists, and nested structures.
+    """
+    if isinstance(obj, dict):
+        return {k.lower(): lowercase_keys(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [lowercase_keys(item) for item in obj]
+    else:
+        return obj
+
+def lower_set_values(input_set: set[str]) -> set[str]:
+    """
+    Returns a new set with all string values from input_set converted to lowercase.
+    """
+    return {value.lower() for value in input_set}
+
+
+
+def convert_jsonb_to_string(data: Dict[str, Any]) -> Dict[str, Any]:
+    def convert_value(val: Any) -> Any:
+        if isinstance(val, (dict, list)):
+            try:
+                return json.dumps(val)
+            except (TypeError, ValueError):
+                return val  # leave unchanged if not serializable
+        elif isinstance(val, str):
+            try:
+                # if it's already a valid JSON string, keep it
+                json.loads(val)
+                return val
+            except json.JSONDecodeError:
+                return val
+        else:
+            return val  # leave numbers, bools, None, etc.
+
+    return {k: convert_value(v) for k, v in data.items()}
+
+def convert_floats_to_decimal(data: Dict[str, Any]) -> Dict[str, Any]:
+    def convert_value(val):
+        if isinstance(val, float):
+            try:
+                return Decimal(str(val))
+            except InvalidOperation:
+                return val
+        elif isinstance(val, Decimal):
+            try:
+                # Try to parse string as float-like value
+                return val
+            except InvalidOperation:
+                return val
+        elif isinstance(val, str):
+            try:
+                # Try to parse string as float-like value
+                # return Decimal(val)
+                return val
+            except InvalidOperation:
+                return val
+        elif isinstance(val, dict):
+            return {k: convert_value(v) for k, v in val.items()}
+        elif isinstance(val, list):
+            return [convert_value(item) for item in val]
+        else:
+            return val  # Leave ints, bools, None, etc. untouched
+
+    return {k: convert_value(v) for k, v in data.items()}
+
+
+def lowercase_keys(data: Dict[str, Any]) -> Dict[str, Any]:
+    def normalize(obj):
+        if isinstance(obj, dict):
+            return {k.lower(): normalize(v) for k, v in obj.items()}
+        elif isinstance(obj, list):
+            return [normalize(item) for item in obj]
+        else:
+            return obj
+    return normalize(data)
+
+def get_postgres_type(dtype):
+    # Map pandas dtype to postgres type
+    if pd.api.types.is_float_dtype(dtype):
+        return "NUMERIC"
+    elif pd.api.types.is_integer_dtype(dtype):
+        return "NUMERIC"
+    # elif pd.api.types.is_integer_dtype(dtype):
+    #     return "BIGINT"
+    elif pd.api.types.is_datetime64_any_dtype(dtype):
+        return "TIMESTAMPTZ"
+    else:
+        # fallback to text for object, string types
+        return "TEXT"
+
+def ensure_table_from_dataframe(df, engine, table_name):
+     # Build CREATE TABLE IF NOT EXISTS DDL dynamically from df dtypes
+    columns_ddl = []
+    for col, dtype in df.dtypes.items():
+        pg_type = get_postgres_type(dtype)
+        columns_ddl.append(f'"{col.lower()}" {pg_type}')
+    columns_sql = ", ".join(columns_ddl)
+
+    create_table_sql = f"""
+    CREATE TABLE IF NOT EXISTS {table_name.lower()} (
+        {columns_sql}
+    );
+    """
+
+    with engine.begin() as conn:  # begin() ensures commit
+        conn.execute(text(create_table_sql))
+
+
+    
+def ensure_schema_and_table(db, schema, table, flat_json, metrics_counter, allow_drop=False, alter_existing=False):
+    with db.begin() as conn:
+        # Ensure schema exists
+        conn.execute(text(f"CREATE SCHEMA IF NOT EXISTS {schema}"))
+ 
+        inspector = inspect(conn)
+        if table in inspector.get_table_names(schema=schema):
+            # Check column differences
+            existing_cols = {col["name"]: col["type"] for col in inspector.get_columns(table, schema=schema)}
+
+            # make sure to lowercase all columns because in db we assume column names are always in lower case
+            # Incoming event might still have mixed case keys in dict, so compare with lower case
+            lower_keys_flat_json = lowercase_keys(flat_json)
+            incoming_cols = set(lower_keys_flat_json.keys())
+
+            new_cols = incoming_cols - set(existing_cols.keys())
+            missing_cols = set(existing_cols.keys()) - incoming_cols
+
+            logging.debug(f"Existing columns: {existing_cols}")
+            logging.debug(f"Incoming columns: {incoming_cols}")
+
+            logging.debug(f"New columns: {new_cols}")
+            logging.debug(f"Missing columns: {missing_cols}")
+ 
+            for col in new_cols:
+                try:
+                    sql_type = _infer_sql_type(flat_json[col])
+                    conn.execute(text(f"ALTER TABLE {schema}.{table} ADD COLUMN {col} {sql_type}"))
+                    if metrics_counter is not None:
+                        metrics_counter.labels(schema=schema, table=table, change_type="column_added").inc()
+                except Exception as e:
+                    conn.rollback()
+                    logging.warning(f"Could not add column: {col}, because {e}")
+                     
+            if allow_drop:
+                for col in missing_cols:
+                    conn.execute(text(f"ALTER TABLE {schema}.{table} DROP COLUMN {col}"))
+                    if metrics_counter is not None:
+                        metrics_counter.labels(schema=schema, table=table, change_type="column_dropped").inc()
+ 
+            # Check for type changes
+            for col, val in flat_json.items():
+                if col in existing_cols:
+                    new_type = _infer_sql_type(val)
+                    if str(existing_cols[col]).lower() != new_type.lower():
+                        if alter_existing:
+                            # try:
+                            #     conn.execute(text(f"ALTER TABLE {schema}.{table} ALTER COLUMN {col} TYPE {new_type}"))
+                            # except:
+                            #     conn.execute(text(f"ALTER TABLE {schema}.{table} ALTER COLUMN {col} TYPE {new_type} USING {col}::{new_type}"))
+                            conn.execute(text(f"ALTER TABLE {schema}.{table} ALTER COLUMN {col} TYPE {new_type} USING {col}::{new_type}"))
+
+
+                            if metrics_counter is not None:
+                                metrics_counter.labels(schema=schema, table=table, change_type="type_changed").inc()
+        else:
+            # Create new table and preserve column name mixed case
+            # columns_def = ", ".join(f'"{k}" {_infer_sql_type(v)}' for k, v in flat_json.items())
+            columns_def = ", ".join(f'{k.lower()} {_infer_sql_type(v)}' for k, v in flat_json.items())
+            conn.execute(text(f"CREATE TABLE {schema}.{table} ({columns_def})"))
+
+def _infer_sql_type(value):
+    # Handle float type
+    if isinstance(value, bool):
+        return "BOOLEAN"    
+    # Handle integer type
+    elif isinstance(value, int):
+        return "BIGINT"
+    # Handle float type
+    elif isinstance(value, float) or isinstance(value, Decimal):
+        # return "DOUBLE PRECISION"
+        return "NUMERIC"
+
+    # elif isinstance(value, float):
+    #     # return "DOUBLE PRECISION"
+    #     return "NUMERIC"
+    # elif isinstance(value, Decimal):
+    #     # return "DOUBLE PRECISION"
+    #     return "NUMERIC"
+    # # Handle boolean type
+    # # Handle integer type
+    # elif isinstance(value, int):
+    #     if value == 0:
+    #         return "NUMERIC"  # Default to numeric for ambiguous 0
+    #     else:
+    #         return "BIGINT"
+    
+    # Handle string type
+    elif isinstance(value, str):
+        # Do not make strings numeric automatically is not always what is expected, only check for datetime
+        try:
+            parsed_date = parse(value)
+            # If the string contains time zone information, use TIMESTAMP WITH TIME ZONE
+            if '+' in value or 'Z' in value:  # Check if there's a time zone info in the string
+                return "TIMESTAMP WITH TIME ZONE"
+            else:
+                # return "TIMESTAMP"
+                try:
+                    float_value = Decimal(value)
+                    # return "DOUBLE PRECISION"
+                    if str(value).lower() == 'nan':
+                        return "TEXT"
+                    else:
+                        return "NUMERIC"
+                except:
+                    return "TEXT"
+        except (ValueError, OverflowError):
+            # If it's not a valid datetime, treat it as a regular string
+            return "TEXT"
+
+
+    # Handle datetime type (already a datetime object)
+    elif isinstance(value, datetime):
+        # Check if the datetime object is timezone-aware
+        if value.tzinfo is not None:
+            return "TIMESTAMP WITH TIME ZONE"  # Handle timezone-aware datetime
+        else:
+            return "TIMESTAMP"  # Handle naive datetime (without timezone)
+    
+    # Handle dictionary or list (assume JSON type)
+    elif isinstance(value, dict) or isinstance(value, list):
+        return "JSONB"
+    
+    # If it's none of the above, treat it as text
+    else:
+        return "TEXT"
+
+
+# Add this log to print out the JSON being inserted
+def log_insert_data(flat_json):
+    logging.info("Inserting the following data into the database:")
+    for key, value in flat_json.items():
+        logging.info(f"Column: {key}, Value: {value}")
+
+
+
+# def store_dicts_into_table(engine, records: list[dict], table_name: str):
+#     """
+#     Inserts a list of dictionaries into a specified table.
+    
+#     Args:
+#         engine: SQLAlchemy engine.
+#         records (list of dict): List of records to insert.
+#         table_name (str): Target table name (assumed in public schema).
+#     """
+#     if not records:
+#         print("No records to insert.")
+#         return
+
+#     metadata = MetaData()
+#     table = Table(table_name, metadata, autoload_with=engine)
+
+#     with engine.begin() as conn:
+#         for record in records:
+#             conn.execute(table.insert().values(**record))
+
+
+
+
+def store_dicts_into_table(engine, records: list[dict], table_name: str, upsert: bool = False, ignore_keys={"reference_data_id", "updated_at", "value"}):
+    """
+    Inserts or upserts a list of dictionaries into a specified table (DB-agnostic).
+
+    Args:
+        engine: SQLAlchemy engine.
+        records (list of dict): List of records to insert.
+        table_name (str): Target table name.
+        upsert (bool): If True, update 'value' if record exists matching other columns
+                       (excluding reference_data_id, updated_at, and value).
+    """
+    if not records:
+        print("No records to insert.")
+        return
+
+    metadata = MetaData()
+    table = Table(table_name, metadata, autoload_with=engine)
+
+    # ignore_keys = {"reference_data_id", "updated_at", "value"}
+
+    with engine.begin() as conn:
+        for record in records:
+            if not upsert:
+                # Insert only
+                conn.execute(table.insert().values(**record))
+            else:
+                # Match on all columns except ignored ones
+                match_keys = {k: v for k, v in record.items() if k not in ignore_keys}
+
+                sel = select(table).where(
+                    and_(*(table.c[k] == v for k, v in match_keys.items()))
+                )
+                existing = conn.execute(sel).first()
+
+                if existing:
+                    update_values = {k: v for k, v in record.items() if k in ignore_keys}
+                    if update_values:                    
+                        upd = (
+                            table.update()
+                            .where(
+                                and_(*(table.c[k] == v for k, v in match_keys.items()))
+                            )
+                            # .values(value=record["value"])
+                            .values(**update_values)                            
+                        )
+                        conn.execute(upd)
+                else:
+                    conn.execute(table.insert().values(**record))
+
