@@ -1,0 +1,13 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "corporate-it-python-sharedutils"
+version = "0.1.0"
+description = "Corporate shared Python utilities"
+authors = [{ name = "Corporate IT" }]
+requires-python = ">=3.9"
+
+[tool.setuptools.packages.find]
+where = ["src"]
