@@ -17,6 +17,103 @@ from sqlalchemy import MetaData, Table, select, and_
 
 from sqlalchemy import select, and_
 
+# -----------------------------
+# Connection
+# -----------------------------
+
+def get_engine(DB_USER, DB_PASSWORD, DB_NAME, DB_HOST, DB_PORT="5432", DB_DRIVER="postgresql+psycopg2"):
+    # DB_HOST = "db"
+    # DB_PORT = "5432"
+    # DB_NAME = "trading_system"
+    # DB_USER = "dbt_user"
+    # DB_PASSWORD = "dbt_pass"
+    DATABASE_URL = f"{DB_DRIVER}://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+
+    engine = create_engine(DATABASE_URL)
+    return engine 
+
+def get_connection(host: str, port: str, user: str, password: str, dbname: str):
+    """Create a PostgreSQL connection using explicit parameters only"""
+
+    return psycopg2.connect(
+        host=host,
+        port=port,
+        user=user,
+        password=password,
+        dbname=dbname,
+    )
+
+
+# -----------------------------
+# Databases
+# -----------------------------
+
+def list_databases(conn) -> List[str]:
+    """Return all non-template databases using existing connection"""
+
+    cur = conn.cursor()
+
+    cur.execute("""
+        SELECT datname
+        FROM pg_database
+        WHERE datistemplate = false;
+    """)
+
+    dbs = [row[0] for row in cur.fetchall()]
+
+    cur.close()
+    return dbs
+
+
+# -----------------------------
+# Schemas
+# -----------------------------
+
+def list_schemas(conn) -> List[str]:
+    """Return all schemas in the current database using existing connection"""
+
+    cur = conn.cursor()
+
+    cur.execute("""
+        SELECT schema_name
+        FROM information_schema.schemata
+        WHERE schema_name NOT IN ('pg_catalog', 'information_schema')
+        ORDER BY schema_name;
+    """)
+
+    schemas = [row[0] for row in cur.fetchall()]
+
+    cur.close()
+    return schemas
+
+
+# -----------------------------
+# Main
+# -----------------------------
+
+def summary():
+    """Create connection from env vars and reuse it across all methods"""
+
+    host = os.environ["PG_HOST"]
+    port = os.environ.get("PG_PORT", "5432")
+    user = os.environ["PG_USER"]
+    password = os.environ["PG_PASSWORD"]
+    dbname = os.environ["PG_DATABASE"]
+
+    conn = get_connection(host, port, user, password, dbname)
+
+    try:
+        print("Databases:")
+        for db in list_databases(conn):
+            print(" -", db)
+
+        print("\nSchemas:")
+        for s in list_schemas(conn):
+            print(" -", s)
+
+    finally:
+        conn.close()
+
 def flatten_json(y, parent_key="", sep="_"):
     items = []
     for k, v in y.items():
