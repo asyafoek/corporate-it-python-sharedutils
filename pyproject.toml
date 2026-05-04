@@ -8,11 +8,7 @@ version = "0.1.0"
 description = "Corporate shared Python utilities"
 authors = [{ name = "Corporate IT" }]
 requires-python = ">=3.9"
-
-[tool.setuptools.packages.find]
-where = ["src"]
-
-dependencies=[
+dependencies = [
     "polygon-api-client>=1.14.6",
     "httpx[http2]>=0.26.0",
     "redis>=6.2.0",
@@ -24,3 +20,7 @@ dependencies=[
     "prometheus-client==0.21.1",
     "requests>=2.0.0" 
 ]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
