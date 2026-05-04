@@ -5,9 +5,16 @@
 pip install --force-reinstall git+https://$GITHUB_TOKEN@github.com/asyafoek/corporate-it-python-sharedutils.git@main
 
 ## Use from python
-from corporate_it_python_sharedutils.strings import slugify
-slug = slugify("Hello Corporate IT")
-slug
+from corporate_it_python_sharedutils.postgres_utils import get_connection, list_databases
+
+host = host or os.getenv("DB_HOST")
+port = port or os.getenv("DB_PORT")
+user = user or os.getenv("DB_USER")
+password = password or os.getenv("DB_PASSWORD")
+dbname = dbname or os.getenv("DB_NAME")
+
+connection = get_connect(host, port, user, password, dbname)
+list_databases(connection)
 
 
 
