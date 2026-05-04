@@ -11,3 +11,16 @@ requires-python = ">=3.9"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+dependencies=[
+    "polygon-api-client>=1.14.6",
+    "httpx[http2]>=0.26.0",
+    "redis>=6.2.0",
+    "kafka-python==2.2.6",
+    "SQLAlchemy>=2.0",
+    "pandas==2.2.3",
+    "python-dotenv>=1.0.1",
+    "psycopg2-binary==2.9.10",
+    "prometheus-client==0.21.1",
+    "requests>=2.0.0" 
+]
