@@ -16,6 +16,7 @@ from sqlalchemy import create_engine, text, Table, MetaData
 from sqlalchemy import MetaData, Table, select, and_
 
 from sqlalchemy import select, and_
+from typing import List
 
 # -----------------------------
 # Connection
