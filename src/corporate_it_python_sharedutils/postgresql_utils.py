@@ -17,6 +17,7 @@ from sqlalchemy import MetaData, Table, select, and_
 
 from sqlalchemy import select, and_
 from typing import List
+import psycopg2
 
 # -----------------------------
 # Connection

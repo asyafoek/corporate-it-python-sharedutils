@@ -6,14 +6,15 @@ pip install --force-reinstall git+https://$GITHUB_TOKEN@github.com/asyafoek/corp
 
 ## Use from python
 from corporate_it_python_sharedutils.postgresql_utils import get_connection, list_databases
+import os 
 
-host = host or os.getenv("DB_HOST")
-port = port or os.getenv("DB_PORT")
-user = user or os.getenv("DB_USER")
-password = password or os.getenv("DB_PASSWORD")
-dbname = dbname or os.getenv("DB_NAME")
+host = os.getenv("DB_HOST")
+port = os.getenv("DB_PORT")
+user = os.getenv("DB_USER")
+password = os.getenv("DB_PASSWORD")
+dbname = os.getenv("DB_NAME")
 
-connection = get_connect(host, port, user, password, dbname)
+connection = get_connection(host, port, user, password, dbname)
 list_databases(connection)
 
 
