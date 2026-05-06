@@ -24,7 +24,6 @@ HEADERS = {
 
 
 def get_market_tickers(market):
-    # https://api.massive.com/v3/reference/tickers?market=stocks&active=true&order=asc&limit=100&sort=ticker&apiKey=yIiDcOmJ5j5Ug0dJfjkKiOLJR7kwOVwJ"
     url = f"https://api.massive.com/v3/reference/tickers"
     results = []
 
@@ -48,6 +47,23 @@ def get_market_tickers(market):
 
         url = next_url
         params = None
+
+    return results
+
+def get_top_market_movers(market, direction):
+    url = f"https://api.massive.com/v2/snapshot/locale/us/markets/{market}/{direction}"
+    results = []
+
+    params = {
+            "include_otc": "true"
+        }
+
+    resp = requests.get(url, headers=HEADERS, params=params)
+    resp.raise_for_status()
+    data = resp.json()
+
+    results = data.get("tickers", [])
+
 
     return results
 
