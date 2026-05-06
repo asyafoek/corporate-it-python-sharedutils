@@ -398,7 +398,7 @@ def log_insert_data(flat_json):
 
 
 
-def store_dicts_into_table(engine, records: list[dict], table_name: str, upsert: bool = False, ignore_keys={"reference_data_id", "updated_at", "value"}):
+def store_dicts_into_table(engine, records: list[dict], schema: str, table_name: str, upsert: bool = False, ignore_keys={"reference_data_id", "updated_at", "value"}):
     """
     Inserts or upserts a list of dictionaries into a specified table (DB-agnostic).
 
@@ -414,7 +414,7 @@ def store_dicts_into_table(engine, records: list[dict], table_name: str, upsert:
         return
 
     metadata = MetaData()
-    table = Table(table_name, metadata, autoload_with=engine)
+    table = Table(table_name, schema, metadata, autoload_with=engine)
 
     # ignore_keys = {"reference_data_id", "updated_at", "value"}
 
