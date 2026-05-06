@@ -50,7 +50,8 @@ def get_market_tickers(market):
 
     return results
 
-def get_top_market_movers(market, direction):
+def get_top_stocks_movers(market, direction):
+    # curl -X GET "https://api.massive.com/v2/snapshot/locale/us/markets/stocks/gainers?apiKey=YOUR_API_KEY"
     url = f"https://api.massive.com/v2/snapshot/locale/us/markets/{market}/{direction}"
     results = []
 
@@ -64,6 +65,23 @@ def get_top_market_movers(market, direction):
 
     results = data.get("tickers", [])
 
+    return results
+
+
+def get_top_crypto_movers(market, direction):
+    # curl -X GET "https://api.massive.com/v2/snapshot/locale/global/markets/crypto/gainers?apiKey=YOUR_API_KEY"
+    url = f"https://api.massive.com/v2/snapshot/locale/global/markets/{market}/{direction}"
+    results = []
+
+    params = {
+            "include_otc": "true"
+        }
+
+    resp = requests.get(url, headers=HEADERS, params=params)
+    resp.raise_for_status()
+    data = resp.json()
+
+    results = data.get("tickers", [])
 
     return results
 
