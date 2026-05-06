@@ -414,7 +414,7 @@ def store_dicts_into_table(engine, records: list[dict], schema: str, table_name:
         return
 
     metadata = MetaData()
-    table = Table(table_name, schema, metadata, autoload_with=engine)
+    table = Table(table_name, metadata, schema=schema, autoload_with=engine)
 
     # ignore_keys = {"reference_data_id", "updated_at", "value"}
 
