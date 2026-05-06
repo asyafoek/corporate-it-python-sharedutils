@@ -127,6 +127,38 @@ def flatten_json(y, parent_key="", sep="_"):
     return dict(items)
 
 
+def flatten_json_array(records, sep="_", lowercase_keys=True):
+    """
+    Takes a list of nested dictionaries and returns a list of flattened dictionaries.
+
+    Args:
+        records (list[dict]): List of nested dictionaries
+        sep (str): Separator for flattened keys
+        lowercase_keys (bool): Whether to lowercase all keys (default True)
+
+    Returns:
+        list[dict]: List of flattened dictionaries
+    """
+    if not records:
+        return []
+
+    if not isinstance(records, list):
+        raise TypeError("Expected a list of dictionaries")
+
+    flattened = []
+    for item in records:
+        if not isinstance(item, dict):
+            raise TypeError("All items in the list must be dictionaries")
+
+        flat = flatten_json(item, sep=sep)
+
+        if lowercase_keys:
+            flat = {k.lower(): v for k, v in flat.items()}
+
+        flattened.append(flat)
+
+    return flattened
+
 def lowercase_keys(obj):
     """
     Recursively lowercases all dictionary keys.
