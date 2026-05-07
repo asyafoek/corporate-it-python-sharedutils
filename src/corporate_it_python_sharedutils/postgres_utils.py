@@ -19,6 +19,11 @@ from sqlalchemy import select, and_
 from typing import List
 import psycopg2
 
+import re
+from typing import Literal
+
+KeyCase = Literal["lower", "upper", None]
+
 # -----------------------------
 # Connection
 # -----------------------------
@@ -116,29 +121,98 @@ def summary():
     finally:
         conn.close()
 
-def flatten_json(y, parent_key="", sep="_"):
+
+
+def split_keys_on_uppercase(obj):
+    """
+    Recursively split dictionary keys on uppercase letters.
+    Example: 'prevDayVW' -> 'prev_Day_V_W'
+    Casing is preserved; lower/upper happens elsewhere.
+    """
+    def split_key(key: str) -> str:
+        return re.sub(r'(?<!^)(?=[A-Z])', '_', key)
+
+    if isinstance(obj, dict):
+        return {
+            split_key(k): split_keys_on_uppercase(v)
+            for k, v in obj.items()
+        }
+    elif isinstance(obj, list):
+        return [split_keys_on_uppercase(item) for item in obj]
+    else:
+        return obj
+
+# def flatten_json(y, parent_key="", sep="_"):
+#     items = []
+#     for k, v in y.items():
+#         new_key = f"{parent_key}{sep}{k}" if parent_key else k
+#         if isinstance(v, dict):
+#             items.extend(flatten_json(v, new_key, sep=sep).items())
+#         else:
+#             items.append((new_key, v))
+#     return dict(items)
+
+def flatten_json(y, parent_key="", sep="_", key_case=None, split_on_upper=False):
     items = []
     for k, v in y.items():
         new_key = f"{parent_key}{sep}{k}" if parent_key else k
         if isinstance(v, dict):
-            items.extend(flatten_json(v, new_key, sep=sep).items())
+            items.extend(
+                flatten_json(
+                    v,
+                    new_key,
+                    sep=sep,
+                    key_case=None,
+                    split_on_upper=False,
+                ).items()
+            )
         else:
             items.append((new_key, v))
-    return dict(items)
+
+    flat = dict(items)
+
+    if split_on_upper:
+        flat = split_keys_on_uppercase(flat)
+
+    flat = normalize_key_case(flat, key_case)
+
+    return flat
 
 
-def flatten_json_array(records, sep="_", lowercase_keys=True):
-    """
-    Takes a list of nested dictionaries and returns a list of flattened dictionaries.
+# def flatten_json_array(records, sep="_", lowercase_keys=True):
+#     """
+#     Takes a list of nested dictionaries and returns a list of flattened dictionaries.
 
-    Args:
-        records (list[dict]): List of nested dictionaries
-        sep (str): Separator for flattened keys
-        lowercase_keys (bool): Whether to lowercase all keys (default True)
+#     Args:
+#         records (list[dict]): List of nested dictionaries
+#         sep (str): Separator for flattened keys
+#         lowercase_keys (bool): Whether to lowercase all keys (default True)
 
-    Returns:
-        list[dict]: List of flattened dictionaries
-    """
+#     Returns:
+#         list[dict]: List of flattened dictionaries
+#     """
+#     if not records:
+#         return []
+
+#     if not isinstance(records, list):
+#         raise TypeError("Expected a list of dictionaries")
+
+#     flattened = []
+#     for item in records:
+#         if not isinstance(item, dict):
+#             raise TypeError("All items in the list must be dictionaries")
+
+#         flat = flatten_json(item, sep=sep)
+
+#         if lowercase_keys:
+#             flat = {k.lower(): v for k, v in flat.items()}
+
+#         flattened.append(flat)
+
+#     return flattened
+
+
+def flatten_json_array(records, sep="_", key_case=None, split_on_upper=False):
     if not records:
         return []
 
@@ -150,14 +224,17 @@ def flatten_json_array(records, sep="_", lowercase_keys=True):
         if not isinstance(item, dict):
             raise TypeError("All items in the list must be dictionaries")
 
-        flat = flatten_json(item, sep=sep)
-
-        if lowercase_keys:
-            flat = {k.lower(): v for k, v in flat.items()}
-
-        flattened.append(flat)
+        flattened.append(
+            flatten_json(
+                item,
+                sep=sep,
+                key_case=key_case,
+                split_on_upper=split_on_upper,
+            )
+        )
 
     return flattened
+
 
 def lowercase_keys(obj):
     """
@@ -170,6 +247,33 @@ def lowercase_keys(obj):
         return [lowercase_keys(item) for item in obj]
     else:
         return obj
+
+
+def uppercase_keys(obj):
+    """
+    Recursively uppercases all dictionary keys.
+    Works for dicts, lists, and nested structures.
+    """
+    if isinstance(obj, dict):
+        return {k.upper(): uppercase_keys(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [uppercase_keys(item) for item in obj]
+    else:
+        return obj
+
+
+def normalize_key_case(obj, key_case: KeyCase):
+    """
+    Normalize dict keys based on key_case:
+    - "lower": lowercase all keys
+    - "upper": uppercase all keys
+    - None: leave as-is
+    """
+    if key_case == "lower":
+        return lowercase_keys(obj)
+    if key_case == "upper":
+        return uppercase_keys(obj)
+    return obj
 
 def lower_set_values(input_set: set[str]) -> set[str]:
     """
