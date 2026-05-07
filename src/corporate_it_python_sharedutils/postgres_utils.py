@@ -583,3 +583,23 @@ def store_dicts_into_table(engine, records: list[dict], schema: str, table_name:
                 else:
                     conn.execute(table.insert().values(**record))
 
+
+def select_to_json(engine, sql: str, params: dict | None = None) -> list[dict]:
+    """
+    Execute a SELECT statement and return the result as a list of dicts (JSON-like).
+
+    Args:
+        engine (sqlalchemy.engine.Engine): SQLAlchemy engine
+        sql (str): SELECT query
+        params (dict | None): Optional bind parameters
+
+    Returns:
+        list[dict]: Query result as list of dictionaries
+    """
+    params = params or {}
+
+    with engine.connect() as conn:
+        result = conn.execute(text(sql), params)
+
+        columns = result.keys()
+        return [dict(zip(columns, row)) for row in result.fetchall()]
