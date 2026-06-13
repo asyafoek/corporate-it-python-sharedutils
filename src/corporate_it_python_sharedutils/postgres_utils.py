@@ -44,7 +44,7 @@ def get_schema_dict(records: list[dict]) -> dict:
 # Connection
 # -----------------------------
 
-def get_default_engine()
+def get_default_engine():
     user=os.environ["PG_USER"]
     password=os.environ["PG_PASSWORD"]
     db=os.environ["PG_DATABASE"]
