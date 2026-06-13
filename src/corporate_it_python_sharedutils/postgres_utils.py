@@ -7,7 +7,8 @@ from decimal import Decimal
 from typing import Any, Dict
 
 from decimal import Decimal, InvalidOperation
-from typing import Any, Dict
+# from typing import Any, Dict
+from typing import List, Dict, Any, Optional
 
 import json
 
@@ -23,6 +24,20 @@ import re
 from typing import Literal
 
 KeyCase = Literal["lower", "upper", None]
+
+def get_schema_dict(records: list[dict]) -> dict:
+    """
+    Returns a    The value for each key is the first non-None value encountered,    Returns a single dict containing all keys found in the records.
+    so datatypes can be inferred.
+    """
+    schema = {}
+
+    for record in records:
+        for key, value in record.items():
+            if key not in schema and value is not None:
+                schema[key] = value
+
+    return schema
 
 # -----------------------------
 # Connection
