@@ -22,6 +22,7 @@ import psycopg2
 
 import re
 from typing import Literal
+import os
 
 KeyCase = Literal["lower", "upper", None]
 
@@ -42,6 +43,17 @@ def get_schema_dict(records: list[dict]) -> dict:
 # -----------------------------
 # Connection
 # -----------------------------
+
+def get_default_engine()
+    user=os.environ["PG_USER"]
+    password=os.environ["PG_PASSWORD"]
+    db=os.environ["PG_DATABASE"]
+    schema="raw"
+    host=os.environ["PG_HOST"]
+    port="5432"
+
+    engine = get_engine(user,password,db,host,port)
+    return engine
 
 def get_engine(DB_USER, DB_PASSWORD, DB_NAME, DB_HOST, DB_PORT="5432", DB_DRIVER="postgresql+psycopg2"):
     # DB_HOST = "db"
