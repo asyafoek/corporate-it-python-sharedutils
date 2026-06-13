@@ -44,11 +44,11 @@ def get_schema_dict(records: list[dict]) -> dict:
 # Connection
 # -----------------------------
 
-def get_default_engine(schema):
+def get_default_engine(schema="raw"):
     user=os.environ["PG_USER"]
     password=os.environ["PG_PASSWORD"]
     db=os.environ["PG_DATABASE"]
-    schema="raw"
+    # schema="raw"
     host=os.environ["PG_HOST"]
     port="5432"
 
