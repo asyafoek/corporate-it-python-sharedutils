@@ -44,7 +44,7 @@ def get_schema_dict(records: list[dict]) -> dict:
 # Connection
 # -----------------------------
 
-def get_default_engine():
+def get_default_engine(schema):
     user=os.environ["PG_USER"]
     password=os.environ["PG_PASSWORD"]
     db=os.environ["PG_DATABASE"]
@@ -53,7 +53,7 @@ def get_default_engine():
     port="5432"
 
     engine = get_engine(user,password,db,host,port)
-    return engine
+    return user, password, db, schema, host, port, engine
 
 def get_engine(DB_USER, DB_PASSWORD, DB_NAME, DB_HOST, DB_PORT="5432", DB_DRIVER="postgresql+psycopg2"):
     # DB_HOST = "db"
