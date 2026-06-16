@@ -26,6 +26,9 @@ import re
 from typing import Literal
 import os
 
+import re
+import hashlib
+
 KeyCase = Literal["lower", "upper", None]
 
 def get_schema_dict(records: list[dict]) -> dict:
@@ -591,6 +594,33 @@ def log_insert_data(flat_json):
 
 
 
+
+def generate_index_name(table, columns, prefix="uq"):
+    """
+    Generate short deterministic index name:
+    prefix + short_table + short_columns + short_hash
+    """
+
+    # ✅ 1. short table: initials of words
+    parts = re.split(r'[_]+', table.lower())
+    short_table = "".join(p[0] for p in parts if p)
+
+    # ✅ 2. short columns: first letters (sorted for determinism)
+    cols = sorted([c.lower() for c in columns])
+    short_cols = "".join(c[0] for c in cols)
+
+    # ✅ 3. base (deterministic)
+    base = f"{short_table}_{short_cols}"
+
+    # ✅ 4. deterministic hash (prevents collisions)
+    hash_suffix = hashlib.md5(base.encode()).hexdigest()[:4]
+
+    # ✅ 5. combine
+    return f"{prefix}_{base}_{hash_suffix}"
+
+
+
+
 def ensure_unique_index(engine, schema, table, conflict_cols):
     """
     Ensure a UNIQUE index exists for given columns.
@@ -602,7 +632,8 @@ def ensure_unique_index(engine, schema, table, conflict_cols):
         return
 
     # naam: ticker_updated
-    index_name = f"uq_{'_'.join(conflict_cols).lower()}"
+    # index_name = f"uq_{'_'.join(conflict_cols).lower()}"
+    index_name = generate_index_name(table_name, conflict_cols, "uq")
 
     cols_str = ", ".join(conflict_cols)
 
