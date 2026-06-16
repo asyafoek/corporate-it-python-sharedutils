@@ -633,7 +633,10 @@ def ensure_unique_index(engine, schema, table, conflict_cols):
 
         conn.execute(text(create_sql))
 
-
+def chunked(lst, size):
+    for i in range(0, len(lst), size):
+        yield lst[i:i + size]
+        
 def store_dicts_into_table(
     engine,
     records: list[dict],
@@ -672,23 +675,43 @@ def store_dicts_into_table(
                 for r in records
             ]
 
-            # stmt = insert(table).values(records)
-            stmt = insert(table).values(normalized_records)
+            # # stmt = insert(table).values(records)
+            # stmt = insert(table).values(normalized_records)
 
-            # ✅ BULK UPSERT (only if configured)
-            if upsert and conflict_cols:
-                update_cols = {
-                    c.name: stmt.excluded[c.name]
-                    for c in table.columns
-                    if c.name not in conflict_cols
-                }
+            # # ✅ BULK UPSERT (only if configured)
+            # if upsert and conflict_cols:
+            #     update_cols = {
+            #         c.name: stmt.excluded[c.name]
+            #         for c in table.columns
+            #         if c.name not in conflict_cols
+            #     }
 
-                stmt = stmt.on_conflict_do_update(
-                    index_elements=conflict_cols,
-                    set_=update_cols
-                )
+            #     stmt = stmt.on_conflict_do_update(
+            #         index_elements=conflict_cols,
+            #         set_=update_cols
+            #     )
 
-            conn.execute(stmt)
+            # conn.execute(stmt)
+
+            batch_size = 1000  # 🔥 belangrijk
+
+            for batch in chunked(normalized_records, batch_size):
+
+                stmt = insert(table).values(batch)
+
+                if upsert and conflict_cols:
+                    update_cols = {
+                        c.name: stmt.excluded[c.name]
+                        for c in table.columns
+                        if c.name not in conflict_cols
+                    }
+
+                    stmt = stmt.on_conflict_do_update(
+                        index_elements=conflict_cols,
+                        set_=update_cols
+                    )
+
+                conn.execute(stmt)
             return
 
         # -----------------------------------
