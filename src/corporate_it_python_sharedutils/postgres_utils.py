@@ -605,6 +605,7 @@ def ensure_unique_index(engine, schema, table, conflict_cols):
 
     cols_str = ", ".join(conflict_cols)
 
+    print(f"Checking if index name can be found {index_name}")
     check_sql = """
     SELECT 1
     FROM pg_indexes
@@ -613,6 +614,7 @@ def ensure_unique_index(engine, schema, table, conflict_cols):
       AND indexname = :indexname
     """
 
+    print(f"Begin creating index {index_name}")
     with engine.begin() as conn:
         exists = conn.execute(
             text(check_sql),
@@ -632,6 +634,7 @@ def ensure_unique_index(engine, schema, table, conflict_cols):
         """
 
         conn.execute(text(create_sql))
+    print(f"End creating index {index_name}")
 
 def chunked(lst, size):
     for i in range(0, len(lst), size):
@@ -657,7 +660,7 @@ def store_dicts_into_table(
 
     if use_bulk:
         # 🔥 1. Zorg dat index bestaat
-        if upsert and conflict_cols:
+        if conflict_cols:
             ensure_unique_index(engine, schema, table_name, conflict_cols)
 
             for col in conflict_cols:
