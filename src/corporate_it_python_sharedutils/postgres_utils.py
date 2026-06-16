@@ -633,7 +633,7 @@ def ensure_unique_index(engine, schema, table, conflict_cols):
 
     # naam: ticker_updated
     # index_name = f"uq_{'_'.join(conflict_cols).lower()}"
-    index_name = generate_index_name(table_name, conflict_cols, "uq")
+    index_name = generate_index_name(table, conflict_cols, "uq")
 
     cols_str = ", ".join(conflict_cols)
 
