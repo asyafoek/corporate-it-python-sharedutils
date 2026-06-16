@@ -660,7 +660,7 @@ def store_dicts_into_table(
                     conn.execute(upd)
             else:
                 conn.execute(table.insert().values(**record))
-``
+
 
 def select_to_json(engine, sql: str, params: dict | None = None) -> list[dict]:
     """
