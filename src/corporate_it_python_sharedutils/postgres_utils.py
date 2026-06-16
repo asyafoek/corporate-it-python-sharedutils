@@ -598,6 +598,7 @@ def ensure_unique_index(engine, schema, table, conflict_cols):
     """
 
     if not conflict_cols:
+        print(f"End index {index_name} already exists")
         return
 
     # naam: ticker_updated
@@ -605,7 +606,7 @@ def ensure_unique_index(engine, schema, table, conflict_cols):
 
     cols_str = ", ".join(conflict_cols)
 
-    print(f"Checking if index name can be found {index_name}")
+    print(f"Checking if index name can be found {schema}.{table}.{index_name}")
     check_sql = """
     SELECT 1
     FROM pg_indexes
@@ -626,6 +627,7 @@ def ensure_unique_index(engine, schema, table, conflict_cols):
         ).first()
 
         if exists:
+            print("Index already exists")
             return
 
         create_sql = f"""
@@ -634,7 +636,9 @@ def ensure_unique_index(engine, schema, table, conflict_cols):
         """
 
         conn.execute(text(create_sql))
-    print(f"End creating index {index_name}")
+        conn.commit() 
+
+    print(f"End creating index {schema}.{table}.{index_name}")
 
 def chunked(lst, size):
     for i in range(0, len(lst), size):
@@ -653,9 +657,6 @@ def store_dicts_into_table(
     if not records:
         return
 
-    metadata = MetaData()
-    table = Table(table_name, metadata, schema=schema, autoload_with=engine)
-
     ignore_keys = ignore_keys or {"reference_data_id", "updated_at", "value"}
 
     if use_bulk:
@@ -666,6 +667,9 @@ def store_dicts_into_table(
             for col in conflict_cols:
                 if any(r.get(col) is None for r in records):
                     raise ValueError(f"Conflict column {col} contains None values")
+
+    metadata = MetaData()
+    table = Table(table_name, metadata, schema=schema, autoload_with=engine)
 
     with engine.begin() as conn:
 
