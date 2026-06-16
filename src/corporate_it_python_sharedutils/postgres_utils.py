@@ -636,7 +636,7 @@ def ensure_unique_index(engine, schema, table, conflict_cols):
 def chunked(lst, size):
     for i in range(0, len(lst), size):
         yield lst[i:i + size]
-        
+
 def store_dicts_into_table(
     engine,
     records: list[dict],
@@ -655,25 +655,28 @@ def store_dicts_into_table(
 
     ignore_keys = ignore_keys or {"reference_data_id", "updated_at", "value"}
 
+    if use_bulk:
+        # 🔥 1. Zorg dat index bestaat
+        if upsert and conflict_cols:
+            ensure_unique_index(engine, schema, table_name, conflict_cols)
+
+            for col in conflict_cols:
+                if any(r.get(col) is None for r in records):
+                    raise ValueError(f"Conflict column {col} contains None values")
+
     with engine.begin() as conn:
 
         # -----------------------------------
         # ✅ FAST PATH (bulk insert / upsert)
         # -----------------------------------
         if use_bulk:
-
-    
-            # 🔥 1. Zorg dat index bestaat
-            if upsert and conflict_cols:
-                ensure_unique_index(engine, schema, table_name, conflict_cols)
-
             # ✅ maak alle records dezelfde structuur
             all_keys = set().union(*(r.keys() for r in records))
 
-            normalized_records = [
-                {k: r.get(k, None) for k in all_keys}
-                for r in records
-            ]
+            # normalized_records = [
+            #     {k: r.get(k, None) for k in all_keys}
+            #     for r in records
+            # ]
 
             # # stmt = insert(table).values(records)
             # stmt = insert(table).values(normalized_records)
@@ -695,9 +698,16 @@ def store_dicts_into_table(
 
             batch_size = 1000  # 🔥 belangrijk
 
-            for batch in chunked(normalized_records, batch_size):
+            # for batch in chunked(normalized_records, batch_size):
+            for batch in chunked(records, batch_size):
 
-                stmt = insert(table).values(batch)
+                normalized_batch = [
+                    {k: r.get(k, None) for k in all_keys}
+                    for r in batch
+                ]
+
+                # stmt = insert(table).values(batch)
+                stmt = insert(table).values(normalized_batch)
 
                 if upsert and conflict_cols:
                     update_cols = {
