@@ -16,6 +16,7 @@ import pandas as pd
 from sqlalchemy import create_engine, text, Table, MetaData
 from sqlalchemy import MetaData, Table, select, and_
 from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy import text
 
 from sqlalchemy import select, and_
 from typing import List
@@ -588,6 +589,51 @@ def log_insert_data(flat_json):
 #                 else:
 #                     conn.execute(table.insert().values(**record))
 
+
+
+def ensure_unique_index(engine, schema, table, conflict_cols):
+    """
+    Ensure a UNIQUE index exists for given columns.
+    Creates it if missing.
+    """
+
+    if not conflict_cols:
+        return
+
+    # naam: ticker_updated
+    index_name = f"uq_{'_'.join(conflict_cols).lower()}"
+
+    cols_str = ", ".join(conflict_cols)
+
+    check_sql = """
+    SELECT 1
+    FROM pg_indexes
+    WHERE schemaname = :schema
+      AND tablename = :table
+      AND indexname = :indexname
+    """
+
+    with engine.begin() as conn:
+        exists = conn.execute(
+            text(check_sql),
+            {
+                "schema": schema,
+                "table": table,
+                "indexname": index_name
+            }
+        ).first()
+
+        if exists:
+            return
+
+        create_sql = f"""
+        CREATE UNIQUE INDEX {index_name}
+        ON {schema}.{table} ({cols_str});
+        """
+
+        conn.execute(text(create_sql))
+
+
 def store_dicts_into_table(
     engine,
     records: list[dict],
@@ -612,6 +658,11 @@ def store_dicts_into_table(
         # ✅ FAST PATH (bulk insert / upsert)
         # -----------------------------------
         if use_bulk:
+
+    
+            # 🔥 1. Zorg dat index bestaat
+            if upsert and conflict_cols:
+                ensure_unique_index(engine, schema, table_name, conflict_cols)
 
             # ✅ maak alle records dezelfde structuur
             all_keys = set().union(*(r.keys() for r in records))
