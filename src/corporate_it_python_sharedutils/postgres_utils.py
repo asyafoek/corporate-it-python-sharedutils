@@ -15,6 +15,7 @@ import json
 import pandas as pd
 from sqlalchemy import create_engine, text, Table, MetaData
 from sqlalchemy import MetaData, Table, select, and_
+from sqlalchemy.dialects.postgresql import insert
 
 from sqlalchemy import select, and_
 from typing import List
@@ -538,78 +539,128 @@ def log_insert_data(flat_json):
 
 
 
-# def store_dicts_into_table(engine, records: list[dict], table_name: str):
+# def store_dicts_into_table(engine, records: list[dict], schema: str, table_name: str, upsert: bool = False, ignore_keys={"reference_data_id", "updated_at", "value"}):
 #     """
-#     Inserts a list of dictionaries into a specified table.
-    
+#     Inserts or upserts a list of dictionaries into a specified table (DB-agnostic).
+
 #     Args:
 #         engine: SQLAlchemy engine.
 #         records (list of dict): List of records to insert.
-#         table_name (str): Target table name (assumed in public schema).
+#         table_name (str): Target table name.
+#         upsert (bool): If True, update 'value' if record exists matching other columns
+#                        (excluding reference_data_id, updated_at, and value).
 #     """
 #     if not records:
 #         print("No records to insert.")
 #         return
 
 #     metadata = MetaData()
-#     table = Table(table_name, metadata, autoload_with=engine)
+#     table = Table(table_name, metadata, schema=schema, autoload_with=engine)
+
+#     # ignore_keys = {"reference_data_id", "updated_at", "value"}
 
 #     with engine.begin() as conn:
 #         for record in records:
-#             conn.execute(table.insert().values(**record))
+#             if not upsert:
+#                 # Insert only
+#                 conn.execute(table.insert().values(**record))
+#             else:
+#                 # Match on all columns except ignored ones
+#                 match_keys = {k: v for k, v in record.items() if k not in ignore_keys}
 
+#                 sel = select(table).where(
+#                     and_(*(table.c[k] == v for k, v in match_keys.items()))
+#                 )
+#                 existing = conn.execute(sel).first()
 
+#                 if existing:
+#                     update_values = {k: v for k, v in record.items() if k in ignore_keys}
+#                     if update_values:                    
+#                         upd = (
+#                             table.update()
+#                             .where(
+#                                 and_(*(table.c[k] == v for k, v in match_keys.items()))
+#                             )
+#                             # .values(value=record["value"])
+#                             .values(**update_values)                            
+#                         )
+#                         conn.execute(upd)
+#                 else:
+#                     conn.execute(table.insert().values(**record))
 
-
-def store_dicts_into_table(engine, records: list[dict], schema: str, table_name: str, upsert: bool = False, ignore_keys={"reference_data_id", "updated_at", "value"}):
-    """
-    Inserts or upserts a list of dictionaries into a specified table (DB-agnostic).
-
-    Args:
-        engine: SQLAlchemy engine.
-        records (list of dict): List of records to insert.
-        table_name (str): Target table name.
-        upsert (bool): If True, update 'value' if record exists matching other columns
-                       (excluding reference_data_id, updated_at, and value).
-    """
+def store_dicts_into_table(
+    engine,
+    records: list[dict],
+    schema: str,
+    table_name: str,
+    upsert: bool = False,
+    ignore_keys=None,
+    conflict_cols: list[str] | None = None,
+    use_bulk: bool = False,
+):
     if not records:
-        print("No records to insert.")
         return
 
     metadata = MetaData()
     table = Table(table_name, metadata, schema=schema, autoload_with=engine)
 
-    # ignore_keys = {"reference_data_id", "updated_at", "value"}
+    ignore_keys = ignore_keys or {"reference_data_id", "updated_at", "value"}
 
     with engine.begin() as conn:
-        for record in records:
-            if not upsert:
-                # Insert only
-                conn.execute(table.insert().values(**record))
-            else:
-                # Match on all columns except ignored ones
-                match_keys = {k: v for k, v in record.items() if k not in ignore_keys}
 
-                sel = select(table).where(
-                    and_(*(table.c[k] == v for k, v in match_keys.items()))
+        # -----------------------------------
+        # ✅ FAST PATH (bulk insert / upsert)
+        # -----------------------------------
+        if use_bulk:
+            stmt = insert(table).values(records)
+
+            # ✅ BULK UPSERT (only if configured)
+            if upsert and conflict_cols:
+                update_cols = {
+                    c.name: stmt.excluded[c.name]
+                    for c in table.columns
+                    if c.name not in conflict_cols
+                }
+
+                stmt = stmt.on_conflict_do_update(
+                    index_elements=conflict_cols,
+                    set_=update_cols
                 )
-                existing = conn.execute(sel).first()
 
-                if existing:
-                    update_values = {k: v for k, v in record.items() if k in ignore_keys}
-                    if update_values:                    
-                        upd = (
-                            table.update()
-                            .where(
-                                and_(*(table.c[k] == v for k, v in match_keys.items()))
-                            )
-                            # .values(value=record["value"])
-                            .values(**update_values)                            
+            conn.execute(stmt)
+            return
+
+        # -----------------------------------
+        # ✅ SAFE GENERIC PATH (old logic)
+        # -----------------------------------
+        for record in records:
+
+            if not upsert:
+                conn.execute(table.insert().values(**record))
+                continue
+
+            match_keys = {k: v for k, v in record.items() if k not in ignore_keys}
+
+            sel = select(table).where(
+                and_(*(table.c[k] == v for k, v in match_keys.items()))
+            )
+
+            existing = conn.execute(sel).first()
+
+            if existing:
+                update_values = {k: v for k, v in record.items() if k in ignore_keys}
+                if update_values:
+                    upd = (
+                        table.update()
+                        .where(
+                            and_(*(table.c[k] == v for k, v in match_keys.items()))
                         )
-                        conn.execute(upd)
-                else:
-                    conn.execute(table.insert().values(**record))
-
+                        .values(**update_values)
+                    )
+                    conn.execute(upd)
+            else:
+                conn.execute(table.insert().values(**record))
+``
 
 def select_to_json(engine, sql: str, params: dict | None = None) -> list[dict]:
     """
