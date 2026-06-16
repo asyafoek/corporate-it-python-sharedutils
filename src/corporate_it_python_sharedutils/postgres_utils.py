@@ -627,7 +627,7 @@ def ensure_unique_index(engine, schema, table, conflict_cols):
             return
 
         create_sql = f"""
-        CREATE UNIQUE INDEX {index_name}
+        CREATE UNIQUE INDEX IF NOT EXISTS {index_name}
         ON {schema}.{table} ({cols_str});
         """
 
