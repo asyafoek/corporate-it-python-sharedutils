@@ -612,7 +612,17 @@ def store_dicts_into_table(
         # ✅ FAST PATH (bulk insert / upsert)
         # -----------------------------------
         if use_bulk:
-            stmt = insert(table).values(records)
+
+            # ✅ maak alle records dezelfde structuur
+            all_keys = set().union(*(r.keys() for r in records))
+
+            normalized_records = [
+                {k: r.get(k, None) for k in all_keys}
+                for r in records
+            ]
+
+            # stmt = insert(table).values(records)
+            stmt = insert(table).values(normalized_records)
 
             # ✅ BULK UPSERT (only if configured)
             if upsert and conflict_cols:
