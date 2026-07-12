@@ -161,8 +161,13 @@ def split_keys_on_uppercase(obj):
     Example: 'prevDayVW' -> 'prev_Day_V_W'
     Casing is preserved; lower/upper happens elsewhere.
     """
+    # def split_key(key: str) -> str:
+    #     return re.sub(r'(?<!^)(?=[A-Z])', '_', key)
     def split_key(key: str) -> str:
-        return re.sub(r'(?<!^)(?=[A-Z])', '_', key)
+        key = re.sub(r'([a-z0-9])([A-Z])', r'\1_\2', key)
+        key = re.sub(r'([A-Z]+)([A-Z][a-z])', r'\1_\2', key)
+        key = re.sub(r'_+', '_', key)   # removes double underscores
+        return key
 
     if isinstance(obj, dict):
         return {
@@ -434,6 +439,7 @@ def ensure_schema_and_table(db, schema, table, flat_json, metrics_counter, allow
             for col in new_cols:
                 try:
                     sql_type = _infer_sql_type(flat_json[col])
+                    # sql_type = _infer_sql_type(lower_keys_flat_json[col])
                     conn.execute(text(f"ALTER TABLE {schema}.{table} ADD COLUMN {col} {sql_type}"))
                     if metrics_counter is not None:
                         metrics_counter.labels(schema=schema, table=table, change_type="column_added").inc()
