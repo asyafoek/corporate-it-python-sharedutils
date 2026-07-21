@@ -40,7 +40,8 @@ def get_schema_dict(records: list[dict]) -> dict:
 
     for record in records:
         for key, value in record.items():
-            if key not in schema and value is not None:
+            if key not in schema:
+            # if key not in schema and value is not None:
                 schema[key] = value
 
     return schema
