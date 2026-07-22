@@ -19,3 +19,7 @@ list_databases(connection)
 
 
 
+## Using Rule Engine for Signals
+cd src
+python -m intelligent_day_trading.main
+
