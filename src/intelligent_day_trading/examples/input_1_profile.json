@@ -1,0 +1,45 @@
+{
+    "profile_name": "asyafoek_stocks_live",
+
+    "profile_identity": 1,
+
+    "enabled": true,
+
+    "account_mode": "live",
+
+    "market": "stocks",
+
+    "strategy_regime_rule_version": 1,
+
+    "strategy_trading_horizon": "intraday",
+
+    "strategy_trading_style": "momentum",
+
+    "strategy_trading_state": "active",
+
+    "strategy_reward_risk_notation_bullish_quiet": "3.0:1",
+
+    "strategy_reward_risk_notation_bullish_volatile": "2.0:1",
+
+    "strategy_reward_risk_notation_sideways_quiet": "2.0:1",
+
+    "strategy_reward_risk_notation_sideways_volatile": "1.5:1",
+
+    "strategy_reward_risk_notation_bearish_quiet": "0:0",
+
+    "strategy_reward_risk_notation_bearish_volatile": "0:0",
+
+    "strategy_position_management_trading_capital": 5000,
+
+    "strategy_position_management_take_profit_percentage": 30,
+
+    "strategy_position_management_stop_losing_percentage": 1,
+
+    "strategy_position_management_max_concurrent_trades": 3,
+
+    "strategy_position_management_max_trades_per_sector": 2,
+
+    "strategy_position_management_max_trades_per_ticker": 3,
+
+    "strategy_position_management_max_trades_per_day": 100
+}

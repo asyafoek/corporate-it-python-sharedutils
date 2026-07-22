@@ -1,0 +1,33 @@
+[
+    {
+        "order_id": "ORDER-1001",
+
+        "run_id": "LIVE_20260720_093000.123",
+
+        "ticker": "nvda",
+
+        "side": "long",
+
+        "entry_price": 176.55,
+
+        "quantity": 100,
+
+        "status": "open"
+    },
+
+    {
+        "order_id": "ORDER-1002",
+
+        "run_id": null,
+
+        "ticker": "nvda",
+
+        "side": "long",
+
+        "entry_price": 178.10,
+
+        "quantity": 50,
+
+        "status": "open"
+    }
+]
