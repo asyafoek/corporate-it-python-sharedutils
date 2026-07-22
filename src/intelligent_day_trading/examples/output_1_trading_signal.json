@@ -1,207 +1,452 @@
 {
-    "signal_id": "a7cc4d8a-f83b-4c78-9d83-2ac55f93b8c7",
-
-    "run_id": "LIVE_20260722_153015.123",
-
-    "signal": "sell",
-
-    "side": "long",
-
-    "rule_name": "momentum",
-
-    "reward_risk_ratio": 3.0,
-
-    "confidence": 0.97,
-
-    "market_timestamp": 1610144700000,
-
-    "signal_generated_at": 1780000001234,
-
-    "market_snapshot": {
-
-        "run_mode": "LIVE",
-
-        "ev": "AM",
-        "sym": "NVDA",
-
-        "v": 4110,
-        "av": 9470157,
-
-        "op": 0.4372,
-        "vw": 0.4488,
-
-        "o": 0.4488,
-        "c": 0.4486,
-        "h": 0.4489,
-        "l": 0.4486,
-
-        "a": 0.4352,
-
-        "z": 685,
-
-        "s": 1610144640000,
-        "e": 1610144700000,
-
-        "ema8": 0.4462,
-        "ema20": 0.4421,
-        "ema50": 0.4389,
-        "ema200": 0.4305,
-
-        "sma20": 0.4410,
-        "sma50": 0.4374,
-        "sma200": 0.4291,
-
-        "rsi14": 67.34,
-
-        "macd": 0.0021,
-        "macd_signal": 0.0017,
-        "macd_histogram": 0.0004,
-
-        "atr14": 0.0083,
-
-        "volume_ratio": 2.13,
-
-        "high_20": 0.4470,
-        "high_50": 0.4521,
-        "high_252": 0.6115,
-
-        "relative_strength": 1.24,
-
-        "gap_percentage": 1.82,
-
-        "news_sentiment": 0.76,
-
-        "sector_strength": 1.18
-    },
-
-    "profile_snapshot": {
-
-        "profile_name": "asyafoek_stocks_live",
-
-        "profile_identity": 1,
-
-        "enabled": true,
-
-        "account_mode": "live",
-
-        "market": "stocks",
-
-        "strategy_regime_rule_version": 1,
-
-        "strategy_trading_horizon": "intraday",
-
-        "strategy_trading_style": "momentum",
-
-        "strategy_trading_state": "active",
-
-        "strategy_reward_risk_notation_bullish_quiet": "3.0:1",
-
-        "strategy_reward_risk_notation_bullish_volatile": "2.0:1",
-
-        "strategy_reward_risk_notation_sideways_quiet": "2.0:1",
-
-        "strategy_reward_risk_notation_sideways_volatile": "1.5:1",
-
-        "strategy_reward_risk_notation_bearish_quiet": "0:0",
-
-        "strategy_reward_risk_notation_bearish_volatile": "0:0",
-
-        "strategy_position_management_trading_capital": 5000,
-
-        "strategy_position_management_take_profit_percentage": 30,
-
-        "strategy_position_management_stop_losing_percentage": 1,
-
-        "strategy_position_management_max_concurrent_trades": 3,
-
-        "strategy_position_management_max_trades_per_sector": 2,
-
-        "strategy_position_management_max_trades_per_ticker": 3,
-
-        "strategy_position_management_max_trades_per_day": 100
-    },
-
-    "watchlist_entry_snapshot": {
-
-        "run_id": "LIVE_20260722_153015.123",
-
-        "market": "stocks",
-
-        "ticker": "nvda",
-
-        "market_regime": "bullish_quiet",
-
-        "sector": "technology",
-
-        "industry": "semiconductors"
-    },
-
-    "open_orders_snapshot": [
+    "trading_signals": [
 
         {
-            "order_id": "ORDER-1001",
+            "signal_id": "a7cc4d8a-f83b-4c78-9d83-2ac55f93b8c7",
 
-            "run_id": "LIVE_20260720_093000.123",
+            "run_id": "LIVE_20260722_153015.123",
 
-            "ticker": "nvda",
+            "signal": "buy",
 
             "side": "long",
 
-            "entry_price": 176.55,
+            "rule_name": "momentum",
 
-            "quantity": 100,
+            "reward_risk_ratio": 3.0,
 
-            "status": "open"
+            "confidence": 0.97,
+
+            "market_timestamp": 1610144700000,
+
+            "signal_generated_at": 1780000001234,
+
+            "market_snapshot": {
+
+                "run_mode": "LIVE",
+
+                "ev": "AM",
+
+                "sym": "NVDA",
+
+                "v": 4110,
+
+                "av": 9470157,
+
+                "op": 0.4372,
+
+                "vw": 0.4488,
+
+                "o": 0.4488,
+
+                "c": 0.4486,
+
+                "h": 0.4489,
+
+                "l": 0.4486,
+
+                "a": 0.4352,
+
+                "z": 685,
+
+                "s": 1610144640000,
+
+                "e": 1610144700000,
+
+                "ema8": 0.4462,
+
+                "ema20": 0.4421,
+
+                "ema50": 0.4389,
+
+                "ema200": 0.4305,
+
+                "sma20": 0.4410,
+
+                "sma50": 0.4374,
+
+                "sma200": 0.4291,
+
+                "rsi14": 67.34,
+
+                "macd": 0.0021,
+
+                "macd_signal": 0.0017,
+
+                "macd_histogram": 0.0004,
+
+                "atr14": 0.0083,
+
+                "volume_ratio": 2.13,
+
+                "high_20": 0.4470,
+
+                "high_50": 0.4521,
+
+                "high_252": 0.6115,
+
+                "relative_strength": 1.24,
+
+                "gap_percentage": 1.82,
+
+                "news_sentiment": 0.76,
+
+                "sector_strength": 1.18
+            },
+
+            "profile_snapshot": {
+
+                "profile_name": "asyafoek_stocks_live",
+
+                "profile_identity": 1,
+
+                "enabled": true,
+
+                "account_mode": "live",
+
+                "market": "stocks",
+
+                "strategy_regime_rule_version": 1,
+
+                "strategy_trading_horizon": "intraday",
+
+                "strategy_trading_style": "momentum",
+
+                "strategy_trading_state": "active",
+
+                "strategy_reward_risk_notation_bullish_quiet": "3.0:1",
+
+                "strategy_reward_risk_notation_bullish_volatile": "2.0:1",
+
+                "strategy_reward_risk_notation_sideways_quiet": "2.0:1",
+
+                "strategy_reward_risk_notation_sideways_volatile": "1.5:1",
+
+                "strategy_reward_risk_notation_bearish_quiet": "0:0",
+
+                "strategy_reward_risk_notation_bearish_volatile": "0:0",
+
+                "strategy_position_management_trading_capital": 5000,
+
+                "strategy_position_management_take_profit_percentage": 30,
+
+                "strategy_position_management_stop_losing_percentage": 1,
+
+                "strategy_position_management_max_concurrent_trades": 3,
+
+                "strategy_position_management_max_trades_per_sector": 2,
+
+                "strategy_position_management_max_trades_per_ticker": 3,
+
+                "strategy_position_management_max_trades_per_day": 100
+            },
+
+            "watchlist_entry_snapshot": {
+
+                "run_id": "LIVE_20260722_153015.123",
+
+                "market": "stocks",
+
+                "ticker": "nvda",
+
+                "market_regime": "bullish_quiet",
+
+                "sector": "technology",
+
+                "industry": "semiconductors"
+            },
+
+            "open_orders_snapshot": [
+
+                {
+                    "order_id": "ORDER-1001",
+
+                    "run_id": "LIVE_20260720_093000.123",
+
+                    "ticker": "nvda",
+
+                    "side": "long",
+
+                    "entry_price": 176.55,
+
+                    "quantity": 100,
+
+                    "status": "open"
+                },
+
+                {
+                    "order_id": "ORDER-1002",
+
+                    "run_id": null,
+
+                    "ticker": "nvda",
+
+                    "side": "long",
+
+                    "entry_price": 178.10,
+
+                    "quantity": 50,
+
+                    "status": "open"
+                }
+            ],
+
+            "evaluation": {
+
+                "market_regime": "bullish_quiet",
+
+                "reward_risk_ratio": 3.0,
+
+                "reason": "all_entry_conditions_passed",
+
+                "confidence": 0.97,
+
+                "validations": [
+
+                    {
+                        "validation": "close_gt_ema20",
+
+                        "passed": true,
+
+                        "weight": 0.50,
+
+                        "contribution": 0.50
+                    },
+
+                    {
+                        "validation": "rsi_gt_55",
+
+                        "passed": true,
+
+                        "weight": 0.47,
+
+                        "contribution": 0.47
+                    }
+                ]
+            }
         },
 
         {
-            "order_id": "ORDER-1002",
+            "signal_id": "794b4e09-659c-4bc2-ab5b-77cc37dbe170",
 
-            "run_id": null,
+            "run_id": "LIVE_20260722_153015.123",
 
-            "ticker": "nvda",
+            "signal": "sell",
 
-            "side": "long",
+            "side": "short",
 
-            "entry_price": 178.10,
+            "rule_name": "momentum",
 
-            "quantity": 50,
+            "reward_risk_ratio": 2.0,
 
-            "status": "open"
-        }
-    ],
+            "confidence": 0.95,
 
-    "evaluation": {
+            "market_timestamp": 1610144700000,
 
-        "market_regime": "bullish_quiet",
+            "signal_generated_at": 1780000001234,
 
-        "reward_risk_ratio": 3.0,
+            "market_snapshot": {
 
-        "reason": "exit_conditions_met",
+                "run_mode": "LIVE",
 
-        "confidence": 0.97,
+                "ev": "AM",
 
-        "validations": [
+                "sym": "TSLA",
 
-            {
-                "validation": "close_lt_ema20",
+                "v": 5220,
 
-                "passed": true,
+                "av": 11050221,
 
-                "weight": 0.50,
+                "op": 244.80,
 
-                "contribution": 0.50
+                "vw": 243.40,
+
+                "o": 244.80,
+
+                "c": 242.95,
+
+                "h": 245.20,
+
+                "l": 242.50,
+
+                "a": 246.30,
+
+                "z": 712,
+
+                "s": 1610144640000,
+
+                "e": 1610144700000,
+
+                "ema8": 243.80,
+
+                "ema20": 246.10,
+
+                "ema50": 249.90,
+
+                "ema200": 270.40,
+
+                "sma20": 246.40,
+
+                "sma50": 250.10,
+
+                "sma200": 271.00,
+
+                "rsi14": 38.21,
+
+                "macd": -0.0025,
+
+                "macd_signal": -0.0017,
+
+                "macd_histogram": -0.0008,
+
+                "atr14": 1.1200,
+
+                "volume_ratio": 2.08,
+
+                "high_20": 260.00,
+
+                "high_50": 275.30,
+
+                "high_252": 299.90,
+
+                "relative_strength": 0.72,
+
+                "gap_percentage": -2.10,
+
+                "news_sentiment": -0.42,
+
+                "sector_strength": 0.81
             },
 
-            {
-                "validation": "rsi_lt_45",
+            "profile_snapshot": {
 
-                "passed": true,
+                "profile_name": "asyafoek_stocks_live",
 
-                "weight": 0.47,
+                "profile_identity": 1,
 
-                "contribution": 0.47
+                "enabled": true,
+
+                "account_mode": "live",
+
+                "market": "stocks",
+
+                "strategy_regime_rule_version": 1,
+
+                "strategy_trading_horizon": "intraday",
+
+                "strategy_trading_style": "momentum",
+
+                "strategy_trading_state": "active",
+
+                "strategy_reward_risk_notation_bullish_quiet": "3.0:1",
+
+                "strategy_reward_risk_notation_bullish_volatile": "2.0:1",
+
+                "strategy_reward_risk_notation_sideways_quiet": "2.0:1",
+
+                "strategy_reward_risk_notation_sideways_volatile": "1.5:1",
+
+                "strategy_reward_risk_notation_bearish_quiet": "0:0",
+
+                "strategy_reward_risk_notation_bearish_volatile": "2.0:1",
+
+                "strategy_position_management_trading_capital": 5000,
+
+                "strategy_position_management_take_profit_percentage": 30,
+
+                "strategy_position_management_stop_losing_percentage": 1,
+
+                "strategy_position_management_max_concurrent_trades": 3,
+
+                "strategy_position_management_max_trades_per_sector": 2,
+
+                "strategy_position_management_max_trades_per_ticker": 3,
+
+                "strategy_position_management_max_trades_per_day": 100
+            },
+
+            "watchlist_entry_snapshot": {
+
+                "run_id": "LIVE_20260722_153015.123",
+
+                "market": "stocks",
+
+                "ticker": "tsla",
+
+                "market_regime": "bearish_volatile",
+
+                "sector": "consumer_cyclical",
+
+                "industry": "auto_manufacturers"
+            },
+
+            "open_orders_snapshot": [
+
+                {
+                    "order_id": "ORDER-2001",
+
+                    "run_id": "LIVE_20260720_093000.123",
+
+                    "ticker": "tsla",
+
+                    "side": "short",
+
+                    "entry_price": 248.75,
+
+                    "quantity": 75,
+
+                    "status": "open"
+                },
+
+                {
+                    "order_id": "ORDER-2002",
+
+                    "run_id": null,
+
+                    "ticker": "tsla",
+
+                    "side": "short",
+
+                    "entry_price": 252.10,
+
+                    "quantity": 25,
+
+                    "status": "open"
+                }
+            ],
+
+            "evaluation": {
+
+                "market_regime": "bearish_volatile",
+
+                "reward_risk_ratio": 2.0,
+
+                "reason": "all_entry_conditions_passed",
+
+                "confidence": 0.95,
+
+                "validations": [
+
+                    {
+                        "validation": "close_lt_ema20",
+
+                        "passed": true,
+
+                        "weight": 0.50,
+
+                        "contribution": 0.50
+                    },
+
+                    {
+                        "validation": "rsi_lt_45",
+
+                        "passed": true,
+
+                        "weight": 0.45,
+
+                        "contribution": 0.45
+                    }
+                ]
             }
-        ]
-    }
+        }
+    ]
 }
