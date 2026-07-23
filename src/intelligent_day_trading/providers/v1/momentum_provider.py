@@ -3,10 +3,10 @@ from intelligent_day_trading.core.confidence import (
 )
 from intelligent_day_trading.core.constants import (
     SIGNAL_BUY,
-    SIDE_LONG
-)
-from intelligent_day_trading.core.signal_builder import (
-    build_signal
+    SIGNAL_SELL,
+    SIGNAL_WAIT,
+    SIDE_LONG,
+    SIDE_SHORT
 )
 from intelligent_day_trading.core.signal_provider import (
     SignalProvider
@@ -17,10 +17,17 @@ class MomentumProvider(
     SignalProvider
 ):
 
-    CONFIDENCE_WEIGHTS = {
+    LONG_WEIGHTS = {
         "close_gt_ema20": 0.25,
         "ema20_gt_ema50": 0.35,
         "rsi_gt_55": 0.20,
+        "volume_ratio_gt_1_5": 0.20
+    }
+
+    SHORT_WEIGHTS = {
+        "close_lt_ema20": 0.25,
+        "ema20_lt_ema50": 0.35,
+        "rsi_lt_45": 0.20,
         "volume_ratio_gt_1_5": 0.20
     }
 
@@ -29,16 +36,26 @@ class MomentumProvider(
         profile,
         watchlist_entry,
         market_data,
-        open_orders,
-        reward_risk_ratio
+        open_orders
     ):
 
         row = market_data.iloc[-1]
 
-        close = float(row["c"])
-        ema20 = float(row["ema20"])
-        ema50 = float(row["ema50"])
-        rsi14 = float(row["rsi14"])
+        close = float(
+            row["c"]
+        )
+
+        ema20 = float(
+            row["ema20"]
+        )
+
+        ema50 = float(
+            row["ema50"]
+        )
+
+        rsi14 = float(
+            row["rsi14"]
+        )
 
         volume_ratio = float(
             row.get(
@@ -47,7 +64,7 @@ class MomentumProvider(
             )
         )
 
-        conditions = {
+        long_conditions = {
 
             "close_gt_ema20":
                 close > ema20,
@@ -56,44 +73,87 @@ class MomentumProvider(
                 ema20 > ema50,
 
             "rsi_gt_55":
-                rsi14 > 55,
+                rsi14 > 55.0,
 
             "volume_ratio_gt_1_5":
                 volume_ratio > 1.5
         }
 
-        confidence = (
+        short_conditions = {
+
+            "close_lt_ema20":
+                close < ema20,
+
+            "ema20_lt_ema50":
+                ema20 < ema50,
+
+            "rsi_lt_45":
+                rsi14 < 45.0,
+
+            "volume_ratio_gt_1_5":
+                volume_ratio > 1.5
+        }
+
+        long_confidence = (
             ConfidenceCalculator.calculate(
-                conditions,
-                self.CONFIDENCE_WEIGHTS
+                long_conditions,
+                self.LONG_WEIGHTS
             )
         )
 
-        if not all(
-            conditions.values()
-        ):
-            return []
-
-        return [
-            build_signal(
-                profile=profile,
-                watchlist_entry=watchlist_entry,
-                market_data=market_data,
-                open_orders=open_orders,
-                signal=SIGNAL_BUY,
-                side=SIDE_LONG,
-                rule_name="momentum",
-                reward_risk_ratio=reward_risk_ratio,
-                confidence=confidence.confidence,
-                evaluation={
-                    "reason":
-                        "all_entry_conditions_passed",
-
-                    "confidence":
-                        confidence.confidence,
-
-                    "validations":
-                        confidence.validations
-                }
+        short_confidence = (
+            ConfidenceCalculator.calculate(
+                short_conditions,
+                self.SHORT_WEIGHTS
             )
-        ]
+        )
+
+        results = []
+
+        if any(
+            long_conditions.values()
+        ):
+
+            results.append({
+
+                "provider":
+                    "momentum",
+
+                "side":
+                    SIDE_LONG,
+
+                "signal":
+                    SIGNAL_BUY
+                    if all(
+                        long_conditions.values()
+                    )
+                    else SIGNAL_WAIT,
+
+                "validations":
+                    long_confidence.validations
+            })
+
+        if any(
+            short_conditions.values()
+        ):
+
+            results.append({
+
+                "provider":
+                    "momentum",
+
+                "side":
+                    SIDE_SHORT,
+
+                "signal":
+                    SIGNAL_SELL
+                    if all(
+                        short_conditions.values()
+                    )
+                    else SIGNAL_WAIT,
+
+                "validations":
+                    short_confidence.validations
+            })
+
+        return results

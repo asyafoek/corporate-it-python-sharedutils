@@ -1,8 +1,12 @@
 from intelligent_day_trading.core.confidence import (
     ConfidenceCalculator
 )
-from intelligent_day_trading.core.signal_builder import (
-    build_signal
+from intelligent_day_trading.core.constants import (
+    SIGNAL_BUY,
+    SIGNAL_SELL,
+    SIGNAL_WAIT,
+    SIDE_LONG,
+    SIDE_SHORT
 )
 from intelligent_day_trading.core.signal_provider import (
     SignalProvider
@@ -13,9 +17,15 @@ class RangeProvider(
     SignalProvider
 ):
 
-    CONFIDENCE_WEIGHTS = {
+    LONG_WEIGHTS = {
         "close_near_low_20": 0.40,
         "rsi_lt_40": 0.30,
+        "volume_ratio_gt_1": 0.30
+    }
+
+    SHORT_WEIGHTS = {
+        "close_near_high_20": 0.40,
+        "rsi_gt_60": 0.30,
         "volume_ratio_gt_1": 0.30
     }
 
@@ -24,8 +34,7 @@ class RangeProvider(
         profile,
         watchlist_entry,
         market_data,
-        open_orders,
-        reward_risk_ratio
+        open_orders
     ):
 
         row = market_data.iloc[-1]
@@ -38,59 +47,112 @@ class RangeProvider(
             row["low_20"]
         )
 
-        distance = (
+        high_20 = float(
+            row["high_20"]
+        )
+
+        distance_from_low = (
             abs(close - low_20)
             / low_20
         )
 
-        conditions = {
+        distance_from_high = (
+            abs(close - high_20)
+            / high_20
+        )
+
+        long_conditions = {
 
             "close_near_low_20":
-                distance <= 0.01,
+                distance_from_low <= 0.01,
 
             "rsi_lt_40":
                 float(
                     row["rsi14"]
-                ) < 40,
+                ) < 40.0,
 
             "volume_ratio_gt_1":
                 float(
                     row["volume_ratio"]
-                ) > 1
+                ) > 1.0
         }
 
-        confidence = (
+        short_conditions = {
+
+            "close_near_high_20":
+                distance_from_high <= 0.01,
+
+            "rsi_gt_60":
+                float(
+                    row["rsi14"]
+                ) > 60.0,
+
+            "volume_ratio_gt_1":
+                float(
+                    row["volume_ratio"]
+                ) > 1.0
+        }
+
+        long_confidence = (
             ConfidenceCalculator.calculate(
-                conditions,
-                self.CONFIDENCE_WEIGHTS
+                long_conditions,
+                self.LONG_WEIGHTS
             )
         )
 
-        if not all(
-            conditions.values()
-        ):
-            return []
-
-        return [
-            build_signal(
-                profile=profile,
-                watchlist_entry=watchlist_entry,
-                market_data=market_data,
-                open_orders=open_orders,
-                signal="buy",
-                side="long",
-                rule_name="range",
-                reward_risk_ratio=reward_risk_ratio,
-                confidence=confidence.confidence,
-                evaluation={
-                    "reason":
-                        "range_bounce",
-
-                    "confidence":
-                        confidence.confidence,
-
-                    "validations":
-                        confidence.validations
-                }
+        short_confidence = (
+            ConfidenceCalculator.calculate(
+                short_conditions,
+                self.SHORT_WEIGHTS
             )
-        ]
+        )
+
+        results = []
+
+        if any(
+            long_conditions.values()
+        ):
+
+            results.append({
+
+                "provider":
+                    "range",
+
+                "side":
+                    SIDE_LONG,
+
+                "signal":
+                    SIGNAL_BUY
+                    if all(
+                        long_conditions.values()
+                    )
+                    else SIGNAL_WAIT,
+
+                "validations":
+                    long_confidence.validations
+            })
+
+        if any(
+            short_conditions.values()
+        ):
+
+            results.append({
+
+                "provider":
+                    "range",
+
+                "side":
+                    SIDE_SHORT,
+
+                "signal":
+                    SIGNAL_SELL
+                    if all(
+                        short_conditions.values()
+                    )
+                    else SIGNAL_WAIT,
+
+                "validations":
+                    short_confidence.validations
+            })
+
+        return results

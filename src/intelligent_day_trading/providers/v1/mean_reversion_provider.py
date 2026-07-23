@@ -3,10 +3,10 @@ from intelligent_day_trading.core.confidence import (
 )
 from intelligent_day_trading.core.constants import (
     SIGNAL_BUY,
-    SIDE_LONG
-)
-from intelligent_day_trading.core.signal_builder import (
-    build_signal
+    SIGNAL_SELL,
+    SIGNAL_WAIT,
+    SIDE_LONG,
+    SIDE_SHORT
 )
 from intelligent_day_trading.core.signal_provider import (
     SignalProvider
@@ -17,9 +17,15 @@ class MeanReversionProvider(
     SignalProvider
 ):
 
-    CONFIDENCE_WEIGHTS = {
+    LONG_WEIGHTS = {
         "rsi_lt_30": 0.50,
         "distance_from_ema20_gt_3": 0.30,
+        "volume_ratio_gt_1": 0.20
+    }
+
+    SHORT_WEIGHTS = {
+        "rsi_gt_70": 0.50,
+        "distance_above_ema20_gt_3": 0.30,
         "volume_ratio_gt_1": 0.20
     }
 
@@ -28,8 +34,7 @@ class MeanReversionProvider(
         profile,
         watchlist_entry,
         market_data,
-        open_orders,
-        reward_risk_ratio
+        open_orders
     ):
 
         row = market_data.iloc[-1]
@@ -42,59 +47,108 @@ class MeanReversionProvider(
             row["ema20"]
         )
 
-        distance_from_ema20 = (
+        distance_below_ema20 = (
             (ema20 - close)
             / ema20
         ) * 100
 
-        conditions = {
+        distance_above_ema20 = (
+            (close - ema20)
+            / ema20
+        ) * 100
+
+        long_conditions = {
 
             "rsi_lt_30":
                 float(
                     row["rsi14"]
-                ) < 30,
+                ) < 30.0,
 
             "distance_from_ema20_gt_3":
-                distance_from_ema20 > 3,
+                distance_below_ema20 > 3.0,
 
             "volume_ratio_gt_1":
                 float(
                     row["volume_ratio"]
-                ) > 1
+                ) > 1.0
         }
 
-        confidence = (
+        short_conditions = {
+
+            "rsi_gt_70":
+                float(
+                    row["rsi14"]
+                ) > 70.0,
+
+            "distance_above_ema20_gt_3":
+                distance_above_ema20 > 3.0,
+
+            "volume_ratio_gt_1":
+                float(
+                    row["volume_ratio"]
+                ) > 1.0
+        }
+
+        long_confidence = (
             ConfidenceCalculator.calculate(
-                conditions,
-                self.CONFIDENCE_WEIGHTS
+                long_conditions,
+                self.LONG_WEIGHTS
             )
         )
 
-        if not all(
-            conditions.values()
-        ):
-            return []
-
-        return [
-            build_signal(
-                profile=profile,
-                watchlist_entry=watchlist_entry,
-                market_data=market_data,
-                open_orders=open_orders,
-                signal=SIGNAL_BUY,
-                side=SIDE_LONG,
-                rule_name="mean_reversion",
-                reward_risk_ratio=reward_risk_ratio,
-                confidence=confidence.confidence,
-                evaluation={
-                    "reason":
-                        "oversold_mean_reversion",
-
-                    "confidence":
-                        confidence.confidence,
-
-                    "validations":
-                        confidence.validations
-                }
+        short_confidence = (
+            ConfidenceCalculator.calculate(
+                short_conditions,
+                self.SHORT_WEIGHTS
             )
-        ]
+        )
+
+        results = []
+
+        if any(
+            long_conditions.values()
+        ):
+
+            results.append({
+
+                "provider":
+                    "mean_reversion",
+
+                "side":
+                    SIDE_LONG,
+
+                "signal":
+                    SIGNAL_BUY
+                    if all(
+                        long_conditions.values()
+                    )
+                    else SIGNAL_WAIT,
+
+                "validations":
+                    long_confidence.validations
+            })
+
+        if any(
+            short_conditions.values()
+        ):
+
+            results.append({
+
+                "provider":
+                    "mean_reversion",
+
+                "side":
+                    SIDE_SHORT,
+
+                "signal":
+                    SIGNAL_SELL
+                    if all(
+                        short_conditions.values()
+                    )
+                    else SIGNAL_WAIT,
+
+                "validations":
+                    short_confidence.validations
+            })
+
+        return results

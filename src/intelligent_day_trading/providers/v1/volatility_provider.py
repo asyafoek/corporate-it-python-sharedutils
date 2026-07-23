@@ -1,8 +1,12 @@
 from intelligent_day_trading.core.confidence import (
     ConfidenceCalculator
 )
-from intelligent_day_trading.core.signal_builder import (
-    build_signal
+from intelligent_day_trading.core.constants import (
+    SIGNAL_BUY,
+    SIGNAL_SELL,
+    SIGNAL_WAIT,
+    SIDE_LONG,
+    SIDE_SHORT
 )
 from intelligent_day_trading.core.signal_provider import (
     SignalProvider
@@ -13,10 +17,16 @@ class VolatilityProvider(
     SignalProvider
 ):
 
-    CONFIDENCE_WEIGHTS = {
+    LONG_WEIGHTS = {
         "atr14_gt_1": 0.40,
         "volume_ratio_gt_2": 0.30,
         "close_gt_ema20": 0.30
+    }
+
+    SHORT_WEIGHTS = {
+        "atr14_gt_1": 0.40,
+        "volume_ratio_gt_2": 0.30,
+        "close_lt_ema20": 0.30
     }
 
     def evaluate(
@@ -24,13 +34,12 @@ class VolatilityProvider(
         profile,
         watchlist_entry,
         market_data,
-        open_orders,
-        reward_risk_ratio
+        open_orders
     ):
 
         row = market_data.iloc[-1]
 
-        conditions = {
+        long_conditions = {
 
             "atr14_gt_1":
                 float(
@@ -50,38 +59,86 @@ class VolatilityProvider(
                 )
         }
 
-        confidence = (
+        short_conditions = {
+
+            "atr14_gt_1":
+                float(
+                    row["atr14"]
+                ) > 1.0,
+
+            "volume_ratio_gt_2":
+                float(
+                    row["volume_ratio"]
+                ) > 2.0,
+
+            "close_lt_ema20":
+                float(
+                    row["c"]
+                ) < float(
+                    row["ema20"]
+                )
+        }
+
+        long_confidence = (
             ConfidenceCalculator.calculate(
-                conditions,
-                self.CONFIDENCE_WEIGHTS
+                long_conditions,
+                self.LONG_WEIGHTS
             )
         )
 
-        if not all(
-            conditions.values()
-        ):
-            return []
-
-        return [
-            build_signal(
-                profile=profile,
-                watchlist_entry=watchlist_entry,
-                market_data=market_data,
-                open_orders=open_orders,
-                signal="buy",
-                side="long",
-                rule_name="volatility",
-                reward_risk_ratio=reward_risk_ratio,
-                confidence=confidence.confidence,
-                evaluation={
-                    "reason":
-                        "volatility_expansion",
-
-                    "confidence":
-                        confidence.confidence,
-
-                    "validations":
-                        confidence.validations
-                }
+        short_confidence = (
+            ConfidenceCalculator.calculate(
+                short_conditions,
+                self.SHORT_WEIGHTS
             )
-        ]
+        )
+
+        results = []
+
+        if any(
+            long_conditions.values()
+        ):
+
+            results.append({
+
+                "provider":
+                    "volatility",
+
+                "side":
+                    SIDE_LONG,
+
+                "signal":
+                    SIGNAL_BUY
+                    if all(
+                        long_conditions.values()
+                    )
+                    else SIGNAL_WAIT,
+
+                "validations":
+                    long_confidence.validations
+            })
+
+        if any(
+            short_conditions.values()
+        ):
+
+            results.append({
+
+                "provider":
+                    "volatility",
+
+                "side":
+                    SIDE_SHORT,
+
+                "signal":
+                    SIGNAL_SELL
+                    if all(
+                        short_conditions.values()
+                    )
+                    else SIGNAL_WAIT,
+
+                "validations":
+                    short_confidence.validations
+            })
+
+        return results

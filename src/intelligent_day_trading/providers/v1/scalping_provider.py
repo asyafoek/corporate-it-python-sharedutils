@@ -3,10 +3,10 @@ from intelligent_day_trading.core.confidence import (
 )
 from intelligent_day_trading.core.constants import (
     SIGNAL_BUY,
-    SIDE_LONG
-)
-from intelligent_day_trading.core.signal_builder import (
-    build_signal
+    SIGNAL_SELL,
+    SIGNAL_WAIT,
+    SIDE_LONG,
+    SIDE_SHORT
 )
 from intelligent_day_trading.core.signal_provider import (
     SignalProvider
@@ -17,10 +17,16 @@ class ScalpingProvider(
     SignalProvider
 ):
 
-    CONFIDENCE_WEIGHTS = {
+    LONG_WEIGHTS = {
         "close_gt_ema8": 0.35,
         "volume_ratio_gt_2": 0.35,
         "rsi_between_50_70": 0.30
+    }
+
+    SHORT_WEIGHTS = {
+        "close_lt_ema8": 0.35,
+        "volume_ratio_gt_2": 0.35,
+        "rsi_between_30_50": 0.30
     }
 
     def evaluate(
@@ -28,13 +34,12 @@ class ScalpingProvider(
         profile,
         watchlist_entry,
         market_data,
-        open_orders,
-        reward_risk_ratio
+        open_orders
     ):
 
         row = market_data.iloc[-1]
 
-        conditions = {
+        long_conditions = {
 
             "close_gt_ema8":
                 float(
@@ -54,38 +59,86 @@ class ScalpingProvider(
                 ) <= 70.0
         }
 
-        confidence = (
+        short_conditions = {
+
+            "close_lt_ema8":
+                float(
+                    row["c"]
+                ) < float(
+                    row["ema8"]
+                ),
+
+            "volume_ratio_gt_2":
+                float(
+                    row["volume_ratio"]
+                ) > 2.0,
+
+            "rsi_between_30_50":
+                30.0 <= float(
+                    row["rsi14"]
+                ) <= 50.0
+        }
+
+        long_confidence = (
             ConfidenceCalculator.calculate(
-                conditions,
-                self.CONFIDENCE_WEIGHTS
+                long_conditions,
+                self.LONG_WEIGHTS
             )
         )
 
-        if not all(
-            conditions.values()
-        ):
-            return []
-
-        return [
-            build_signal(
-                profile=profile,
-                watchlist_entry=watchlist_entry,
-                market_data=market_data,
-                open_orders=open_orders,
-                signal=SIGNAL_BUY,
-                side=SIDE_LONG,
-                rule_name="scalping",
-                reward_risk_ratio=reward_risk_ratio,
-                confidence=confidence.confidence,
-                evaluation={
-                    "reason":
-                        "short_term_momentum",
-
-                    "confidence":
-                        confidence.confidence,
-
-                    "validations":
-                        confidence.validations
-                }
+        short_confidence = (
+            ConfidenceCalculator.calculate(
+                short_conditions,
+                self.SHORT_WEIGHTS
             )
-        ]
+        )
+
+        results = []
+
+        if any(
+            long_conditions.values()
+        ):
+
+            results.append({
+
+                "provider":
+                    "scalping",
+
+                "side":
+                    SIDE_LONG,
+
+                "signal":
+                    SIGNAL_BUY
+                    if all(
+                        long_conditions.values()
+                    )
+                    else SIGNAL_WAIT,
+
+                "validations":
+                    long_confidence.validations
+            })
+
+        if any(
+            short_conditions.values()
+        ):
+
+            results.append({
+
+                "provider":
+                    "scalping",
+
+                "side":
+                    SIDE_SHORT,
+
+                "signal":
+                    SIGNAL_SELL
+                    if all(
+                        short_conditions.values()
+                    )
+                    else SIGNAL_WAIT,
+
+                "validations":
+                    short_confidence.validations
+            })
+
+        return results
