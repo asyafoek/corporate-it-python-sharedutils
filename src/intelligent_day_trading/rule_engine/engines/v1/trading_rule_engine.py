@@ -3,48 +3,48 @@ import uuid
 
 import pandas as pd
 
-from intelligent_day_trading.engines.v1.provider_configurations import (
+from intelligent_day_trading.rule_engine.engines.v1.provider_configurations import (
     PROVIDER_CONFIGURATIONS
 )
 
-from intelligent_day_trading.core.constants import (
+from intelligent_day_trading.rule_engine.core.constants import (
     TRADING_STATE_DISABLED
 )
 
-from intelligent_day_trading.providers.v1.momentum_provider import (
+from intelligent_day_trading.rule_engine.providers.v1.momentum_provider import (
     MomentumProvider
 )
-from intelligent_day_trading.providers.v1.breakout_provider import (
+from intelligent_day_trading.rule_engine.providers.v1.breakout_provider import (
     BreakoutProvider
 )
-from intelligent_day_trading.providers.v1.trend_following_provider import (
+from intelligent_day_trading.rule_engine.providers.v1.trend_following_provider import (
     TrendFollowingProvider
 )
-from intelligent_day_trading.providers.v1.mean_reversion_provider import (
+from intelligent_day_trading.rule_engine.providers.v1.mean_reversion_provider import (
     MeanReversionProvider
 )
-from intelligent_day_trading.providers.v1.reversal_provider import (
+from intelligent_day_trading.rule_engine.providers.v1.reversal_provider import (
     ReversalProvider
 )
-from intelligent_day_trading.providers.v1.scalping_provider import (
+from intelligent_day_trading.rule_engine.providers.v1.scalping_provider import (
     ScalpingProvider
 )
-from intelligent_day_trading.providers.v1.volatility_provider import (
+from intelligent_day_trading.rule_engine.providers.v1.volatility_provider import (
     VolatilityProvider
 )
-from intelligent_day_trading.providers.v1.news_provider import (
+from intelligent_day_trading.rule_engine.providers.v1.news_provider import (
     NewsProvider
 )
-from intelligent_day_trading.providers.v1.gap_provider import (
+from intelligent_day_trading.rule_engine.providers.v1.gap_provider import (
     GapProvider
 )
-from intelligent_day_trading.providers.v1.range_provider import (
+from intelligent_day_trading.rule_engine.providers.v1.range_provider import (
     RangeProvider
 )
-from intelligent_day_trading.providers.v1.sector_rotation_provider import (
+from intelligent_day_trading.rule_engine.providers.v1.sector_rotation_provider import (
     SectorRotationProvider
 )
-from intelligent_day_trading.providers.v1.relative_strength_provider import (
+from intelligent_day_trading.rule_engine.providers.v1.relative_strength_provider import (
     RelativeStrengthProvider
 )
 

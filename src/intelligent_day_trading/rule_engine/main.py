@@ -2,7 +2,7 @@ import json
 
 import pandas as pd
 
-from intelligent_day_trading.engines.factory import (
+from intelligent_day_trading.rule_engine.engines.factory import (
     TradingRuleEngineFactory
 )
 

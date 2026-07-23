@@ -1,4 +1,4 @@
-from intelligent_day_trading.engines.v1.trading_rule_engine import (
+from intelligent_day_trading.rule_engine.engines.v1.trading_rule_engine import (
     TradingRuleEngineV1
 )
 

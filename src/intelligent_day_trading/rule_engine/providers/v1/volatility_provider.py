@@ -1,14 +1,14 @@
-from intelligent_day_trading.core.confidence import (
+from intelligent_day_trading.rule_engine.core.confidence import (
     ConfidenceCalculator
 )
-from intelligent_day_trading.core.constants import (
+from intelligent_day_trading.rule_engine.core.constants import (
     SIGNAL_BUY,
     SIGNAL_SELL,
     SIGNAL_WAIT,
     SIDE_LONG,
     SIDE_SHORT
 )
-from intelligent_day_trading.core.signal_provider import (
+from intelligent_day_trading.rule_engine.core.signal_provider import (
     SignalProvider
 )
 
