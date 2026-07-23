@@ -450,9 +450,34 @@ class TradingRuleEngineV1:
                     stop_loss_orders
             }
 
-        order_side = str(
-            ticker_orders.iloc[0]["side"]
-        ).lower()
+        max_trades_per_ticker = int(
+
+            profile.get(
+                "strategy_position_management_max_trades_per_ticker",
+                1
+            )
+        )
+
+        open_trade_count = len(
+            ticker_orders
+        )
+
+        if (
+            open_trade_count
+            <
+            max_trades_per_ticker
+        ):
+
+            return {
+
+                "override_applied": False,
+
+                "override_reason": None,
+
+                "override_signal": None,
+
+                "override_orders": None
+            }
 
 
         return {
@@ -460,12 +485,7 @@ class TradingRuleEngineV1:
             "override_applied": True,
 
             "override_reason":
-
-                (
-                    "existing_long_position"
-                    if order_side == "long"
-                    else "existing_short_position"
-                ),
+                "max_trades_per_ticker_reached",
 
             "override_signal":
                 "hold",
