@@ -232,6 +232,249 @@ class TradingRuleEngineV1:
 
             2
         )
+    
+    def _apply_position_management_override(
+        self,
+        profile: dict,
+        watchlist_entry: dict,
+        market_data: pd.DataFrame,
+        open_orders: pd.DataFrame,
+    ) -> dict:
+
+        if open_orders.empty:
+
+            return {
+
+                "override_applied": False,
+
+                "override_reason": None,
+
+                "override_signal": None,
+
+                "override_orders": None
+            }
+
+        ticker = watchlist_entry.get(
+            "ticker"
+        )
+
+        ticker_orders = open_orders.loc[
+
+            (
+                open_orders["ticker"]
+                ==
+                ticker
+            )
+
+            &
+
+            (
+                open_orders["status"]
+                ==
+                "open"
+            )
+        ]
+
+        if ticker_orders.empty:
+
+            return {
+
+                "override_applied": False,
+
+                "override_reason": None,
+
+                "override_signal": None,
+
+                "override_orders": None
+            }
+
+        current_price = float(
+            market_data.iloc[-1]["c"]
+        )
+
+        take_profit_percentage = float(
+
+            profile.get(
+                "strategy_position_management_take_profit_percentage",
+                0
+            )
+        )
+
+        stop_loss_percentage = float(
+
+            profile.get(
+                "strategy_position_management_stop_losing_percentage",
+                0
+            )
+        )
+
+        take_profit_orders = []
+
+        stop_loss_orders = []
+
+        for _, order in (
+            ticker_orders.iterrows()
+        ):
+
+            entry_price = float(
+                order["entry_price"]
+            )
+
+            order_side = str(
+                order["side"]
+            ).lower()
+
+            order_id = order["order_id"]
+
+            if order_side == "long":
+
+                take_profit_price = (
+
+                    entry_price
+
+                    *
+
+                    (
+                        1
+                        +
+                        (
+                            take_profit_percentage
+                            / 100
+                        )
+                    )
+                )
+
+                stop_loss_price = (
+
+                    entry_price
+
+                    *
+
+                    (
+                        1
+                        -
+                        (
+                            stop_loss_percentage
+                            / 100
+                        )
+                    )
+                )
+
+                if current_price >= take_profit_price:
+
+                    take_profit_orders.append(
+                        order_id
+                    )
+
+                if current_price <= stop_loss_price:
+
+                    stop_loss_orders.append(
+                        order_id
+                    )
+
+            elif order_side == "short":
+
+                take_profit_price = (
+
+                    entry_price
+
+                    *
+
+                    (
+                        1
+                        -
+                        (
+                            take_profit_percentage
+                            / 100
+                        )
+                    )
+                )
+
+                stop_loss_price = (
+
+                    entry_price
+
+                    *
+
+                    (
+                        1
+                        +
+                        (
+                            stop_loss_percentage
+                            / 100
+                        )
+                    )
+                )
+
+                if current_price <= take_profit_price:
+
+                    take_profit_orders.append(
+                        order_id
+                    )
+
+                if current_price >= stop_loss_price:
+
+                    stop_loss_orders.append(
+                        order_id
+                    )
+
+        if take_profit_orders:
+
+            return {
+
+                "override_applied": True,
+
+                "override_reason":
+                    "take_profit_reached",
+
+                "override_signal":
+                    "sell",
+
+                "override_orders":
+                    take_profit_orders
+            }
+
+        if stop_loss_orders:
+
+            return {
+
+                "override_applied": True,
+
+                "override_reason":
+                    "stop_loss_triggered",
+
+                "override_signal":
+                    "sell",
+
+                "override_orders":
+                    stop_loss_orders
+            }
+
+        order_side = str(
+            ticker_orders.iloc[0]["side"]
+        ).lower()
+
+
+        return {
+
+            "override_applied": True,
+
+            "override_reason":
+
+                (
+                    "existing_long_position"
+                    if order_side == "long"
+                    else "existing_short_position"
+                ),
+
+            "override_signal":
+                "hold",
+
+            "override_orders":
+                ticker_orders[
+                    "order_id"
+                ].tolist()
+        }
 
     def _build_signal(
         self,
@@ -243,8 +486,15 @@ class TradingRuleEngineV1:
         side: str,
         reward_risk_ratio: float,
         consensus_percentage: float,
-        provider_results: list
-    ) -> dict:
+        provider_results: list,
+        reason: str,
+        provider_consensus_signal: str,
+        override_applied: bool,
+        override_reason: str | None,
+        override_signal: str | None,
+        override_orders: list | None
+
+    ) -> dict:            
 
         market_snapshot = (
             market_data.iloc[-1]
@@ -302,14 +552,33 @@ class TradingRuleEngineV1:
                     orient="records"
                 ),
 
+
             "evaluation": {
 
                 "reason":
-                    "provider_consensus",
+                    reason,
+
+                "provider_consensus_signal":
+                    provider_consensus_signal,
+
+                "provider_consensus_percentage":
+                    consensus_percentage,
+
+                "override_applied":
+                    override_applied,
+
+                "override_reason":
+                    override_reason,
+
+                "override_signal":
+                    override_signal,
+
+                "override_orders":
+                    override_orders,
 
                 "provider_results":
                     provider_results
-            }
+            }            
         }
 
     def evaluate(
@@ -509,6 +778,26 @@ class TradingRuleEngineV1:
 
             ):
 
+                override = (
+                    self._apply_position_management_override(
+                        profile=profile,
+                        watchlist_entry=watchlist_entry,
+                        market_data=market_data,
+                        open_orders=open_orders,
+                    )
+                )
+
+                final_signal = (
+
+                    override["override_signal"]
+
+                    if override["override_applied"]
+
+                    else
+
+                    "buy"
+                )
+
                 trading_signals.append(
 
                     self._build_signal(
@@ -516,11 +805,21 @@ class TradingRuleEngineV1:
                         watchlist_entry=watchlist_entry,
                         market_data=market_data,
                         open_orders=open_orders,
-                        signal="buy",
+                        signal=final_signal,
                         side="long",
                         reward_risk_ratio=reward_risk_ratio,
                         consensus_percentage=long_consensus,
-                        provider_results=long_provider_results
+                        provider_results=long_provider_results,
+                        reason=(
+                            "position_management_override"
+                            if override["override_applied"]
+                            else "provider_consensus"
+                        ),
+                        provider_consensus_signal="buy",
+                        override_applied=override["override_applied"],
+                        override_reason=override["override_reason"],
+                        override_signal=override["override_signal"],
+                        override_orders=override["override_orders"]
                     )
                 )
 
@@ -559,6 +858,27 @@ class TradingRuleEngineV1:
 
             ):
 
+
+                override = (
+                    self._apply_position_management_override(
+                        profile=profile,
+                        watchlist_entry=watchlist_entry,
+                        market_data=market_data,
+                        open_orders=open_orders,
+                    )
+                )
+
+                final_signal = (
+
+                    override["override_signal"]
+
+                    if override["override_applied"]
+
+                    else
+
+                    "sell"
+                )
+
                 trading_signals.append(
 
                     self._build_signal(
@@ -566,11 +886,21 @@ class TradingRuleEngineV1:
                         watchlist_entry=watchlist_entry,
                         market_data=market_data,
                         open_orders=open_orders,
-                        signal="sell",
+                        signal=final_signal,
                         side="short",
                         reward_risk_ratio=reward_risk_ratio,
                         consensus_percentage=short_consensus,
-                        provider_results=short_provider_results
+                        provider_results=short_provider_results,
+                        reason=(
+                            "position_management_override"
+                            if override["override_applied"]
+                            else "provider_consensus"
+                        ),
+                        provider_consensus_signal="sell",
+                        override_applied=override["override_applied"],
+                        override_reason=override["override_reason"],
+                        override_signal=override["override_signal"],
+                        override_orders=override["override_orders"]
                     )
                 )
 

@@ -165,7 +165,12 @@
 
       "evaluation": {
         "reason": "provider_consensus",
-
+        "provider_consensus_signal": "buy",
+        "provider_consensus_percentage": 75.0,
+        "override_applied": false,
+        "override_reason": null,
+        "override_signal": null,
+        "override_orders": null,
         "provider_results": [
           {
             "provider": "momentum",
@@ -413,8 +418,13 @@
       ],
 
       "evaluation": {
-        "reason": "provider_consensus",
-
+        "reason": "position_management_override",
+        "provider_consensus_signal": "sell",
+        "provider_consensus_percentage": 75.0,
+        "override_applied": true,
+        "override_reason": "take_profit_reached",
+        "override_signal": "sell",
+        "override_orders": ["ORDER-2001","ORDER-2002"],
         "provider_results": [
           {
             "provider": "momentum",
