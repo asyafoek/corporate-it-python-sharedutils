@@ -3,7 +3,7 @@ import uuid
 
 import pandas as pd
 
-from intelligent_day_trading.config.provider_configurations import (
+from intelligent_day_trading.engines.v1.provider_configurations import (
     PROVIDER_CONFIGURATIONS
 )
 
