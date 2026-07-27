@@ -1,4 +1,8 @@
 
+from intelligent_day_trading.rule_engine.core.signal_summary_builder import (
+    SignalSummaryBuilder
+)
+
 from intelligent_day_trading.rule_engine.core.provider_loader import (
     load_provider
 )
@@ -81,6 +85,11 @@ class TradingRuleEngine:
                 )
 
         return {
+
+            "signal_summary":
+                SignalSummaryBuilder.build(
+                    trading_signals
+                ),
 
             "trading_signals":
                 trading_signals

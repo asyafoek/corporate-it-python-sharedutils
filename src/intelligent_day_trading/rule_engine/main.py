@@ -7,6 +7,7 @@ from intelligent_day_trading.rule_engine.engines.factory import (
 )
 
 
+
 def main():
 
     print("START")
@@ -227,6 +228,8 @@ def main():
         open_orders=open_orders
     )
 
+    print(result)
+
     print()
     print("=" * 80)
     print("TRADING SIGNALS")
@@ -236,6 +239,13 @@ def main():
         result.get(
             "trading_signals",
             []
+        )
+    )
+
+    signal_summary = (
+        result.get(
+            "signal_summary",
+            {}
         )
     )
 
@@ -250,6 +260,19 @@ def main():
     print(
         f"Generated {len(trading_signals)} signal(s)"
     )
+
+    print()
+    print("=" * 80)
+    print("SIGNAL SUMMARY")
+    print("=" * 80)
+
+    print(
+        json.dumps(
+            signal_summary,
+            indent=4,
+            default=str
+        )
+    )    
 
     print()
     print("=" * 80)
