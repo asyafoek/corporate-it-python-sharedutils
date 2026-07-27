@@ -13,7 +13,7 @@ from intelligent_day_trading.rule_engine.core.signal_provider import (
 )
 
 
-class NewsProvider(
+class Provider(
     SignalProvider
 ):
 

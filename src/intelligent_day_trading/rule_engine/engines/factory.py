@@ -1,13 +1,9 @@
-from intelligent_day_trading.rule_engine.engines.v1.trading_rule_engine import (
-    TradingRuleEngineV1
+from intelligent_day_trading.rule_engine.core.trading_rule_engine import (
+    TradingRuleEngine
 )
 
 
 class TradingRuleEngineFactory:
-
-    ENGINES = {
-        1: TradingRuleEngineV1
-    }
 
     @classmethod
     def create(
@@ -15,17 +11,6 @@ class TradingRuleEngineFactory:
         version: int
     ):
 
-        engine_class = (
-            cls.ENGINES.get(
-                version
-            )
+        return TradingRuleEngine(
+            version=version
         )
-
-        if engine_class is None:
-
-            raise ValueError(
-                f"Unsupported engine version: "
-                f"{version}"
-            )
-
-        return engine_class()

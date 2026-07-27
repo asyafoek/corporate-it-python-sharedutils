@@ -12,11 +12,6 @@ class SignalProvider(ABC):
         profile: dict,
         watchlist_entry: dict,
         market_data: pd.DataFrame,
-        open_orders: pd.DataFrame,
-        reward_risk_ratio: float
+        open_orders: pd.DataFrame
     ) -> list:
-        """
-        Evaluate market conditions and return
-        zero or more trading signals.
-        """
         pass
