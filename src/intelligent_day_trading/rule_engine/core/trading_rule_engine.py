@@ -37,21 +37,19 @@ class TradingRuleEngine:
             provider_version
         ) in configuration:
 
-            self.providers.append(
-
-                load_provider(
-                    provider_name,
-                    provider_version
-                )
-
-                provider.engine_version = (
-                    self.version
-                )
-
-                self.providers.append(
-                    provider
-                )
+            provider = load_provider(
+                provider_name,
+                provider_version
             )
+
+            provider.engine_version = (
+                self.version
+            )
+
+            self.providers.append(
+                provider
+            )
+
 
     def evaluate(
         self,
