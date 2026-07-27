@@ -39,46 +39,143 @@ class Provider(
 
         row = market_data.iloc[-1]
 
-        long_conditions = {
 
-            "close_gt_high_20":
-                float(
-                    row["c"]
-                ) > float(
-                    row["high_20"]
-                ),
+        horizon = profile[
+            "strategy_trading_horizon"
+        ]
 
-            "volume_ratio_gt_2":
-                float(
-                    row["volume_ratio"]
-                ) > 2.0,
+        if horizon == "intraday":
 
-            "rsi_gt_60":
-                float(
-                    row["rsi14"]
-                ) > 60.0
-        }
+            long_conditions = {
 
-        short_conditions = {
+                "close_gt_high_20":
+                    float(
+                        row["c"]
+                    ) > float(
+                        row["high_20"]
+                    ),
 
-            "close_lt_low_20":
-                float(
-                    row["c"]
-                ) < float(
-                    row["low_20"]
-                ),
+                "volume_ratio_gt_2":
+                    float(
+                        row["volume_ratio"]
+                    ) > 2.0,
 
-            "volume_ratio_gt_2":
-                float(
-                    row["volume_ratio"]
-                ) > 2.0,
+                "rsi_gt_60":
+                    float(
+                        row["rsi14"]
+                    ) > 60.0
+            }
 
-            "rsi_lt_40":
-                float(
-                    row["rsi14"]
-                ) < 40.0
-        }
+            short_conditions = {
 
+                "close_lt_low_20":
+                    float(
+                        row["c"]
+                    ) < float(
+                        row["low_20"]
+                    ),
+
+                "volume_ratio_gt_2":
+                    float(
+                        row["volume_ratio"]
+                    ) > 2.0,
+
+                "rsi_lt_40":
+                    float(
+                        row["rsi14"]
+                    ) < 40.0
+            }
+
+        elif horizon == "swing":
+
+            long_conditions = {
+
+                "close_gt_high_20":
+                    float(
+                        row["c"]
+                    ) > float(
+                        row["high_20"]
+                    ),
+
+                "volume_ratio_gt_2":
+                    float(
+                        row["volume_ratio"]
+                    ) > 1.5,
+
+                "rsi_gt_60":
+                    float(
+                        row["rsi14"]
+                    ) > 55.0
+            }
+
+            short_conditions = {
+
+                "close_lt_low_20":
+                    float(
+                        row["c"]
+                    ) < float(
+                        row["low_20"]
+                    ),
+
+                "volume_ratio_gt_2":
+                    float(
+                        row["volume_ratio"]
+                    ) > 1.5,
+
+                "rsi_lt_40":
+                    float(
+                        row["rsi14"]
+                    ) < 45.0
+            }
+
+        elif horizon == "position":
+
+            long_conditions = {
+
+                "close_gt_high_20":
+                    float(
+                        row["c"]
+                    ) > float(
+                        row["high_20"]
+                    ),
+
+                "volume_ratio_gt_2":
+                    float(
+                        row["volume_ratio"]
+                    ) > 1.0,
+
+                "rsi_gt_60":
+                    float(
+                        row["rsi14"]
+                    ) > 50.0
+            }
+
+            short_conditions = {
+
+                "close_lt_low_20":
+                    float(
+                        row["c"]
+                    ) < float(
+                        row["low_20"]
+                    ),
+
+                "volume_ratio_gt_2":
+                    float(
+                        row["volume_ratio"]
+                    ) > 1.0,
+
+                "rsi_lt_40":
+                    float(
+                        row["rsi14"]
+                    ) < 50.0
+            }
+
+        else:
+
+            raise ValueError(
+                f"Unsupported trading horizon: "
+                f"{horizon}"
+            )
         long_confidence = (
             ConfidenceCalculator.calculate(
                 long_conditions,

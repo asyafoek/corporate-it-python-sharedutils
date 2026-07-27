@@ -39,45 +39,142 @@ class Provider(
 
         row = market_data.iloc[-1]
 
-        long_conditions = {
+        horizon = profile[
+            "strategy_trading_horizon"
+        ]
 
-            "sector_strength_gt_1":
-                float(
-                    row["sector_strength"]
-                ) > 1.0,
+        if horizon == "intraday":
 
-            "relative_strength_gt_1":
-                float(
-                    row["relative_strength"]
-                ) > 1.0,
+            long_conditions = {
 
-            "close_gt_ema20":
-                float(
-                    row["c"]
-                ) > float(
-                    row["ema20"]
-                )
-        }
+                "sector_strength_gt_1":
+                    float(
+                        row["sector_strength"]
+                    ) > 1.0,
 
-        short_conditions = {
+                "relative_strength_gt_1":
+                    float(
+                        row["relative_strength"]
+                    ) > 1.0,
 
-            "sector_strength_lt_1":
-                float(
-                    row["sector_strength"]
-                ) < 1.0,
+                "close_gt_ema20":
+                    float(
+                        row["c"]
+                    ) > float(
+                        row["ema20"]
+                    )
+            }
 
-            "relative_strength_lt_1":
-                float(
-                    row["relative_strength"]
-                ) < 1.0,
+            short_conditions = {
 
-            "close_lt_ema20":
-                float(
-                    row["c"]
-                ) < float(
-                    row["ema20"]
-                )
-        }
+                "sector_strength_lt_1":
+                    float(
+                        row["sector_strength"]
+                    ) < 1.0,
+
+                "relative_strength_lt_1":
+                    float(
+                        row["relative_strength"]
+                    ) < 1.0,
+
+                "close_lt_ema20":
+                    float(
+                        row["c"]
+                    ) < float(
+                        row["ema20"]
+                    )
+            }
+
+        elif horizon == "swing":
+
+            long_conditions = {
+
+                "sector_strength_gt_1":
+                    float(
+                        row["sector_strength"]
+                    ) > 1.05,
+
+                "relative_strength_gt_1":
+                    float(
+                        row["relative_strength"]
+                    ) > 1.05,
+
+                "close_gt_ema20":
+                    float(
+                        row["c"]
+                    ) > float(
+                        row["ema20"]
+                    )
+            }
+
+            short_conditions = {
+
+                "sector_strength_lt_1":
+                    float(
+                        row["sector_strength"]
+                    ) < 0.95,
+
+                "relative_strength_lt_1":
+                    float(
+                        row["relative_strength"]
+                    ) < 0.95,
+
+                "close_lt_ema20":
+                    float(
+                        row["c"]
+                    ) < float(
+                        row["ema20"]
+                    )
+            }
+
+        elif horizon == "position":
+
+            long_conditions = {
+
+                "sector_strength_gt_1":
+                    float(
+                        row["sector_strength"]
+                    ) > 1.10,
+
+                "relative_strength_gt_1":
+                    float(
+                        row["relative_strength"]
+                    ) > 1.10,
+
+                "close_gt_ema20":
+                    float(
+                        row["c"]
+                    ) > float(
+                        row["ema20"]
+                    )
+            }
+
+            short_conditions = {
+
+                "sector_strength_lt_1":
+                    float(
+                        row["sector_strength"]
+                    ) < 0.90,
+
+                "relative_strength_lt_1":
+                    float(
+                        row["relative_strength"]
+                    ) < 0.90,
+
+                "close_lt_ema20":
+                    float(
+                        row["c"]
+                    ) < float(
+                        row["ema20"]
+                    )
+            }
+
+        else:
+
+            raise ValueError(
+                f"Unsupported trading horizon: "
+                f"{horizon}"
+            )
 
         long_confidence = (
             ConfidenceCalculator.calculate(

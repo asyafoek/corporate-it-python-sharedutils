@@ -39,45 +39,142 @@ class Provider(
 
         row = market_data.iloc[-1]
 
-        long_conditions = {
+        horizon = profile[
+            "strategy_trading_horizon"
+        ]
 
-            "rsi_lt_25":
-                float(
-                    row["rsi14"]
-                ) < 25.0,
+        if horizon == "intraday":
 
-            "close_gt_ema8":
-                float(
-                    row["c"]
-                ) > float(
-                    row["ema8"]
-                ),
+            long_conditions = {
 
-            "volume_ratio_gt_1_5":
-                float(
-                    row["volume_ratio"]
-                ) > 1.5
-        }
+                "rsi_lt_25":
+                    float(
+                        row["rsi14"]
+                    ) < 25.0,
 
-        short_conditions = {
+                "close_gt_ema8":
+                    float(
+                        row["c"]
+                    ) > float(
+                        row["ema8"]
+                    ),
 
-            "rsi_gt_75":
-                float(
-                    row["rsi14"]
-                ) > 75.0,
+                "volume_ratio_gt_1_5":
+                    float(
+                        row["volume_ratio"]
+                    ) > 1.5
+            }
 
-            "close_lt_ema8":
-                float(
-                    row["c"]
-                ) < float(
-                    row["ema8"]
-                ),
+            short_conditions = {
 
-            "volume_ratio_gt_1_5":
-                float(
-                    row["volume_ratio"]
-                ) > 1.5
-        }
+                "rsi_gt_75":
+                    float(
+                        row["rsi14"]
+                    ) > 75.0,
+
+                "close_lt_ema8":
+                    float(
+                        row["c"]
+                    ) < float(
+                        row["ema8"]
+                    ),
+
+                "volume_ratio_gt_1_5":
+                    float(
+                        row["volume_ratio"]
+                    ) > 1.5
+            }
+
+        elif horizon == "swing":
+
+            long_conditions = {
+
+                "rsi_lt_25":
+                    float(
+                        row["rsi14"]
+                    ) < 30.0,
+
+                "close_gt_ema8":
+                    float(
+                        row["c"]
+                    ) > float(
+                        row["ema8"]
+                    ),
+
+                "volume_ratio_gt_1_5":
+                    float(
+                        row["volume_ratio"]
+                    ) > 1.2
+            }
+
+            short_conditions = {
+
+                "rsi_gt_75":
+                    float(
+                        row["rsi14"]
+                    ) > 70.0,
+
+                "close_lt_ema8":
+                    float(
+                        row["c"]
+                    ) < float(
+                        row["ema8"]
+                    ),
+
+                "volume_ratio_gt_1_5":
+                    float(
+                        row["volume_ratio"]
+                    ) > 1.2
+            }
+
+        elif horizon == "position":
+
+            long_conditions = {
+
+                "rsi_lt_25":
+                    float(
+                        row["rsi14"]
+                    ) < 35.0,
+
+                "close_gt_ema8":
+                    float(
+                        row["c"]
+                    ) > float(
+                        row["ema8"]
+                    ),
+
+                "volume_ratio_gt_1_5":
+                    float(
+                        row["volume_ratio"]
+                    ) > 1.0
+            }
+
+            short_conditions = {
+
+                "rsi_gt_75":
+                    float(
+                        row["rsi14"]
+                    ) > 65.0,
+
+                "close_lt_ema8":
+                    float(
+                        row["c"]
+                    ) < float(
+                        row["ema8"]
+                    ),
+
+                "volume_ratio_gt_1_5":
+                    float(
+                        row["volume_ratio"]
+                    ) > 1.0
+            }
+
+        else:
+
+            raise ValueError(
+                f"Unsupported trading horizon: "
+                f"{horizon}"
+            )
 
         long_confidence = (
             ConfidenceCalculator.calculate(

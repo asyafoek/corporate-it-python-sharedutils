@@ -39,53 +39,182 @@ class Provider(
 
         row = market_data.iloc[-1]
 
-        long_conditions = {
+        horizon = profile[
+            "strategy_trading_horizon"
+        ]
 
-            "ema20_gt_ema50":
-                float(
-                    row["ema20"]
-                ) > float(
-                    row["ema50"]
-                ),
+        if horizon == "intraday":
 
-            "ema50_gt_ema200":
-                float(
-                    row["ema50"]
-                ) > float(
-                    row["ema200"]
-                ),
+            long_conditions = {
 
-            "close_gt_ema20":
-                float(
-                    row["c"]
-                ) > float(
-                    row["ema20"]
-                )
-        }
+                "ema20_gt_ema50":
+                    float(
+                        row["ema20"]
+                    ) > float(
+                        row["ema50"]
+                    ),
 
-        short_conditions = {
+                "ema50_gt_ema200":
+                    float(
+                        row["ema50"]
+                    ) > float(
+                        row["ema200"]
+                    ),
 
-            "ema20_lt_ema50":
-                float(
-                    row["ema20"]
-                ) < float(
-                    row["ema50"]
-                ),
+                "close_gt_ema20":
+                    float(
+                        row["c"]
+                    ) > float(
+                        row["ema20"]
+                    )
+            }
 
-            "ema50_lt_ema200":
-                float(
-                    row["ema50"]
-                ) < float(
-                    row["ema200"]
-                ),
+            short_conditions = {
 
-            "close_lt_ema20":
-                float(
-                    row["c"]
-                ) < float(
-                    row["ema20"]
-                )
-        }
+                "ema20_lt_ema50":
+                    float(
+                        row["ema20"]
+                    ) < float(
+                        row["ema50"]
+                    ),
+
+                "ema50_lt_ema200":
+                    float(
+                        row["ema50"]
+                    ) < float(
+                        row["ema200"]
+                    ),
+
+                "close_lt_ema20":
+                    float(
+                        row["c"]
+                    ) < float(
+                        row["ema20"]
+                    )
+            }
+
+        elif horizon == "swing":
+
+            long_conditions = {
+
+                "ema20_gt_ema50":
+                    (
+                        float(
+                            row["ema20"]
+                        ) / float(
+                            row["ema50"]
+                        )
+                    ) > 1.01,
+
+                "ema50_gt_ema200":
+                    (
+                        float(
+                            row["ema50"]
+                        ) / float(
+                            row["ema200"]
+                        )
+                    ) > 1.01,
+
+                "close_gt_ema20":
+                    float(
+                        row["c"]
+                    ) > float(
+                        row["ema20"]
+                    )
+            }
+
+            short_conditions = {
+
+                "ema20_lt_ema50":
+                    (
+                        float(
+                            row["ema20"]
+                        ) / float(
+                            row["ema50"]
+                        )
+                    ) < 0.99,
+
+                "ema50_lt_ema200":
+                    (
+                        float(
+                            row["ema50"]
+                        ) / float(
+                            row["ema200"]
+                        )
+                    ) < 0.99,
+
+                "close_lt_ema20":
+                    float(
+                        row["c"]
+                    ) < float(
+                        row["ema20"]
+                    )
+            }
+
+        elif horizon == "position":
+
+            long_conditions = {
+
+                "ema20_gt_ema50":
+                    (
+                        float(
+                            row["ema20"]
+                        ) / float(
+                            row["ema50"]
+                        )
+                    ) > 1.03,
+
+                "ema50_gt_ema200":
+                    (
+                        float(
+                            row["ema50"]
+                        ) / float(
+                            row["ema200"]
+                        )
+                    ) > 1.03,
+
+                "close_gt_ema20":
+                    float(
+                        row["c"]
+                    ) > float(
+                        row["ema20"]
+                    )
+            }
+
+            short_conditions = {
+
+                "ema20_lt_ema50":
+                    (
+                        float(
+                            row["ema20"]
+                        ) / float(
+                            row["ema50"]
+                        )
+                    ) < 0.97,
+
+                "ema50_lt_ema200":
+                    (
+                        float(
+                            row["ema50"]
+                        ) / float(
+                            row["ema200"]
+                        )
+                    ) < 0.97,
+
+                "close_lt_ema20":
+                    float(
+                        row["c"]
+                    ) < float(
+                        row["ema20"]
+                    )
+            }
+
+        else:
+
+            raise ValueError(
+                f"Unsupported trading horizon: "
+                f"{horizon}"
+            )
 
         long_confidence = (
             ConfidenceCalculator.calculate(

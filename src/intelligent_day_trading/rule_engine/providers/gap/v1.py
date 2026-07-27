@@ -39,45 +39,142 @@ class Provider(
 
         row = market_data.iloc[-1]
 
-        long_conditions = {
+        horizon = profile[
+            "strategy_trading_horizon"
+        ]
 
-            "gap_gt_3":
-                float(
-                    row["gap_percentage"]
-                ) > 3.0,
+        if horizon == "intraday":
 
-            "volume_ratio_gt_2":
-                float(
-                    row["volume_ratio"]
-                ) > 2.0,
+            long_conditions = {
 
-            "close_gt_open":
-                float(
-                    row["c"]
-                ) > float(
-                    row["o"]
-                )
-        }
+                "gap_gt_3":
+                    float(
+                        row["gap_percentage"]
+                    ) > 3.0,
 
-        short_conditions = {
+                "volume_ratio_gt_2":
+                    float(
+                        row["volume_ratio"]
+                    ) > 2.0,
 
-            "gap_lt_minus_3":
-                float(
-                    row["gap_percentage"]
-                ) < -3.0,
+                "close_gt_open":
+                    float(
+                        row["c"]
+                    ) > float(
+                        row["o"]
+                    )
+            }
 
-            "volume_ratio_gt_2":
-                float(
-                    row["volume_ratio"]
-                ) > 2.0,
+            short_conditions = {
 
-            "close_lt_open":
-                float(
-                    row["c"]
-                ) < float(
-                    row["o"]
-                )
-        }
+                "gap_lt_minus_3":
+                    float(
+                        row["gap_percentage"]
+                    ) < -3.0,
+
+                "volume_ratio_gt_2":
+                    float(
+                        row["volume_ratio"]
+                    ) > 2.0,
+
+                "close_lt_open":
+                    float(
+                        row["c"]
+                    ) < float(
+                        row["o"]
+                    )
+            }
+
+        elif horizon == "swing":
+
+            long_conditions = {
+
+                "gap_gt_3":
+                    float(
+                        row["gap_percentage"]
+                    ) > 2.0,
+
+                "volume_ratio_gt_2":
+                    float(
+                        row["volume_ratio"]
+                    ) > 1.5,
+
+                "close_gt_open":
+                    float(
+                        row["c"]
+                    ) > float(
+                        row["o"]
+                    )
+            }
+
+            short_conditions = {
+
+                "gap_lt_minus_3":
+                    float(
+                        row["gap_percentage"]
+                    ) < -2.0,
+
+                "volume_ratio_gt_2":
+                    float(
+                        row["volume_ratio"]
+                    ) > 1.5,
+
+                "close_lt_open":
+                    float(
+                        row["c"]
+                    ) < float(
+                        row["o"]
+                    )
+            }
+
+        elif horizon == "position":
+
+            long_conditions = {
+
+                "gap_gt_3":
+                    float(
+                        row["gap_percentage"]
+                    ) > 1.0,
+
+                "volume_ratio_gt_2":
+                    float(
+                        row["volume_ratio"]
+                    ) > 1.0,
+
+                "close_gt_open":
+                    float(
+                        row["c"]
+                    ) > float(
+                        row["o"]
+                    )
+            }
+
+            short_conditions = {
+
+                "gap_lt_minus_3":
+                    float(
+                        row["gap_percentage"]
+                    ) < -1.0,
+
+                "volume_ratio_gt_2":
+                    float(
+                        row["volume_ratio"]
+                    ) > 1.0,
+
+                "close_lt_open":
+                    float(
+                        row["c"]
+                    ) < float(
+                        row["o"]
+                    )
+            }
+
+        else:
+
+            raise ValueError(
+                f"Unsupported trading horizon: "
+                f"{horizon}"
+            )
 
         long_confidence = (
             ConfidenceCalculator.calculate(

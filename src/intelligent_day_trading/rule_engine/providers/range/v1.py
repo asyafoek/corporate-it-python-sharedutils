@@ -39,6 +39,7 @@ class Provider(
 
         row = market_data.iloc[-1]
 
+
         close = float(
             row["c"]
         )
@@ -61,37 +62,119 @@ class Provider(
             / high_20
         )
 
-        long_conditions = {
+        horizon = profile[
+            "strategy_trading_horizon"
+        ]
 
-            "close_near_low_20":
-                distance_from_low <= 0.01,
+        if horizon == "intraday":
 
-            "rsi_lt_40":
-                float(
-                    row["rsi14"]
-                ) < 40.0,
+            long_conditions = {
 
-            "volume_ratio_gt_1":
-                float(
-                    row["volume_ratio"]
-                ) > 1.0
-        }
+                "close_near_low_20":
+                    distance_from_low <= 0.01,
 
-        short_conditions = {
+                "rsi_lt_40":
+                    float(
+                        row["rsi14"]
+                    ) < 40.0,
 
-            "close_near_high_20":
-                distance_from_high <= 0.01,
+                "volume_ratio_gt_1":
+                    float(
+                        row["volume_ratio"]
+                    ) > 1.0
+            }
 
-            "rsi_gt_60":
-                float(
-                    row["rsi14"]
-                ) > 60.0,
+            short_conditions = {
 
-            "volume_ratio_gt_1":
-                float(
-                    row["volume_ratio"]
-                ) > 1.0
-        }
+                "close_near_high_20":
+                    distance_from_high <= 0.01,
+
+                "rsi_gt_60":
+                    float(
+                        row["rsi14"]
+                    ) > 60.0,
+
+                "volume_ratio_gt_1":
+                    float(
+                        row["volume_ratio"]
+                    ) > 1.0
+            }
+
+        elif horizon == "swing":
+
+            long_conditions = {
+
+                "close_near_low_20":
+                    distance_from_low <= 0.02,
+
+                "rsi_lt_40":
+                    float(
+                        row["rsi14"]
+                    ) < 45.0,
+
+                "volume_ratio_gt_1":
+                    float(
+                        row["volume_ratio"]
+                    ) > 1.0
+            }
+
+            short_conditions = {
+
+                "close_near_high_20":
+                    distance_from_high <= 0.02,
+
+                "rsi_gt_60":
+                    float(
+                        row["rsi14"]
+                    ) > 55.0,
+
+                "volume_ratio_gt_1":
+                    float(
+                        row["volume_ratio"]
+                    ) > 1.0
+            }
+
+        elif horizon == "position":
+
+            long_conditions = {
+
+                "close_near_low_20":
+                    distance_from_low <= 0.03,
+
+                "rsi_lt_40":
+                    float(
+                        row["rsi14"]
+                    ) < 50.0,
+
+                "volume_ratio_gt_1":
+                    float(
+                        row["volume_ratio"]
+                    ) > 1.0
+            }
+
+            short_conditions = {
+
+                "close_near_high_20":
+                    distance_from_high <= 0.03,
+
+                "rsi_gt_60":
+                    float(
+                        row["rsi14"]
+                    ) > 50.0,
+
+                "volume_ratio_gt_1":
+                    float(
+                        row["volume_ratio"]
+                    ) > 1.0
+            }
+
+        else:
+
+            raise ValueError(
+                f"Unsupported trading horizon: "
+                f"{horizon}"
+            )
+
 
         long_confidence = (
             ConfidenceCalculator.calculate(

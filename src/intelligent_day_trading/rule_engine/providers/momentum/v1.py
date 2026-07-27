@@ -64,35 +64,112 @@ class Provider(
             )
         )
 
-        long_conditions = {
+        horizon = profile[
+            "strategy_trading_horizon"
+        ]
 
-            "close_gt_ema20":
-                close > ema20,
+        if horizon == "intraday":
 
-            "ema20_gt_ema50":
-                ema20 > ema50,
+            long_conditions = {
 
-            "rsi_gt_55":
-                rsi14 > 55.0,
+                "close_gt_ema20":
+                    close > ema20,
 
-            "volume_ratio_gt_1_5":
-                volume_ratio > 1.5
-        }
+                "ema20_gt_ema50":
+                    ema20 > ema50,
 
-        short_conditions = {
+                "rsi_gt_55":
+                    rsi14 > 55.0,
 
-            "close_lt_ema20":
-                close < ema20,
+                "volume_ratio_gt_1_5":
+                    volume_ratio > 1.5
+            }
 
-            "ema20_lt_ema50":
-                ema20 < ema50,
+            short_conditions = {
 
-            "rsi_lt_45":
-                rsi14 < 45.0,
+                "close_lt_ema20":
+                    close < ema20,
 
-            "volume_ratio_gt_1_5":
-                volume_ratio > 1.5
-        }
+                "ema20_lt_ema50":
+                    ema20 < ema50,
+
+                "rsi_lt_45":
+                    rsi14 < 45.0,
+
+                "volume_ratio_gt_1_5":
+                    volume_ratio > 1.5
+            }
+
+        elif horizon == "swing":
+
+            long_conditions = {
+
+                "close_gt_ema20":
+                    close > ema20,
+
+                "ema20_gt_ema50":
+                    ema20 > ema50,
+
+                "rsi_gt_55":
+                    rsi14 > 50.0,
+
+                "volume_ratio_gt_1_5":
+                    volume_ratio > 1.2
+            }
+
+            short_conditions = {
+
+                "close_lt_ema20":
+                    close < ema20,
+
+                "ema20_lt_ema50":
+                    ema20 < ema50,
+
+                "rsi_lt_45":
+                    rsi14 < 50.0,
+
+                "volume_ratio_gt_1_5":
+                    volume_ratio > 1.2
+            }
+
+        elif horizon == "position":
+
+            long_conditions = {
+
+                "close_gt_ema20":
+                    close > ema20,
+
+                "ema20_gt_ema50":
+                    ema20 > ema50,
+
+                "rsi_gt_55":
+                    rsi14 > 50.0,
+
+                "volume_ratio_gt_1_5":
+                    volume_ratio > 1.0
+            }
+
+            short_conditions = {
+
+                "close_lt_ema20":
+                    close < ema20,
+
+                "ema20_lt_ema50":
+                    ema20 < ema50,
+
+                "rsi_lt_45":
+                    rsi14 < 50.0,
+
+                "volume_ratio_gt_1_5":
+                    volume_ratio > 1.0
+            }
+
+        else:
+
+            raise ValueError(
+                f"Unsupported trading horizon: "
+                f"{horizon}"
+            )
 
         long_confidence = (
             ConfidenceCalculator.calculate(
