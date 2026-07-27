@@ -117,7 +117,10 @@ class Provider(
             results.append({
 
                 "provider":
-                    "momentum",
+                    self.provider_name,
+
+                "provider_version":
+                    self.provider_version,
 
                 "side":
                     SIDE_LONG,
@@ -140,7 +143,10 @@ class Provider(
             results.append({
 
                 "provider":
-                    "momentum",
+                    self.provider_name,
+
+                "provider_version":
+                    self.provider_version,
 
                 "side":
                     SIDE_SHORT,

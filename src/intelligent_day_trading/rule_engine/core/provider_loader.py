@@ -16,4 +16,14 @@ def load_provider(
 
     )
 
-    return module.Provider()
+    provider = module.Provider()
+
+    provider.provider_name = (
+        provider_name
+    )
+
+    provider.provider_version = (
+        provider_version
+    )
+
+    return provider
