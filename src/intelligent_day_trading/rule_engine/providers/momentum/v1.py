@@ -211,6 +211,19 @@ class Provider(
                     )
                     else SIGNAL_WAIT,
 
+                "confidence_percentage":
+                    round(
+                        sum(
+                            validation[
+                                "contribution"
+                            ]
+                            for validation
+                            in long_confidence.validations
+                        ) * 100,
+                        2
+                    ),
+
+
                 "validations":
                     long_confidence.validations
             })
@@ -238,6 +251,19 @@ class Provider(
                         short_conditions.values()
                     )
                     else SIGNAL_WAIT,
+
+                "confidence_percentage":
+                    round(
+                        sum(
+                            validation[
+                                "contribution"
+                            ]
+                            for validation
+                            in long_confidence.validations
+                        ) * 100,
+                        2
+                    ),
+
 
                 "validations":
                     short_confidence.validations

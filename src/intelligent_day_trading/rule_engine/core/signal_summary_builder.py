@@ -26,7 +26,9 @@ class SignalSummaryBuilder:
                 signal["side"]
             ][
                 signal["signal"]
-            ] += 1
+            ] += signal[
+                "confidence_percentage"
+            ]
 
         for side in [
             "long",
