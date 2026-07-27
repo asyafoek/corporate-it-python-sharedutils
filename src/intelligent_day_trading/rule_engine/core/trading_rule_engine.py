@@ -44,6 +44,13 @@ class TradingRuleEngine:
                     provider_version
                 )
 
+                provider.engine_version = (
+                    self.version
+                )
+
+                self.providers.append(
+                    provider
+                )
             )
 
     def evaluate(

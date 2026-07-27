@@ -115,6 +115,8 @@ class Provider(
         ):
 
             results.append({
+                "engine_version":
+                    self.engine_version,
 
                 "provider":
                     self.provider_name,
@@ -141,6 +143,8 @@ class Provider(
         ):
 
             results.append({
+                "engine_version":
+                    self.engine_version,
 
                 "provider":
                     self.provider_name,
