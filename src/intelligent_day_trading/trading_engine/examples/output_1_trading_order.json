@@ -1,0 +1,307 @@
+{
+  "trading_order": {
+
+    "order_id": "f4b31f7b-65aa-44c5-9eda-8e6f2999e3d3",
+
+    "run_id": "LIVE_20260722_153015.123",
+
+    "identity_id": 1,
+
+    "account_id": "ACCOUNT_001",
+
+    "profile_id": 1,
+
+    "profile_name": "asyafoek_stocks_live",
+
+    "account_mode": "live",
+
+    "run_mode": "LIVE",
+
+    "market": "stocks",
+
+    "trading_horizon": "intraday",
+
+    "trading_side": "both",
+
+    "strategy_regime_rule_version": 1,
+
+    "rule_engine_version": "1.0.0",
+
+    "trade_engine_version": "1.0.0",
+
+    "status": "approved",
+
+    "created_at": 1780000100000,
+
+    "evaluation": {
+      "approved": true,
+      "reason": "risk_checks_passed",
+
+      "signals_received": 2,
+      "signals_approved": 2,
+      "signals_rejected": 0,
+
+      "validations": [
+
+        {
+          "validation": "profile_enabled",
+          "passed": true
+        },
+
+        {
+          "validation": "account_mode_allowed",
+          "passed": true,
+
+          "account_mode": "live"
+        },
+
+        {
+          "validation": "trading_state_active",
+          "passed": true
+        },
+
+        {
+          "validation": "trading_horizon_allowed",
+          "passed": true,
+
+          "requested": "intraday",
+
+          "allowed": "intraday"
+        },
+
+        {
+          "validation": "trading_side_allowed",
+          "passed": true,
+
+          "requested": "long",
+
+          "allowed": "both"
+        },
+
+        {
+          "validation": "trading_side_allowed",
+          "passed": true,
+
+          "requested": "short",
+
+          "allowed": "both"
+        },
+
+        {
+          "validation": "signal_present",
+          "passed": true
+        },
+
+        {
+          "validation": "signal_freshness",
+          "passed": true,
+
+          "oldest_signal_age_ms": 25000,
+
+          "maximum_age_ms": 300000
+        },
+
+        {
+          "validation": "max_concurrent_trades",
+          "passed": true,
+
+          "current": 2,
+
+          "maximum": 3
+        },
+
+        {
+          "validation": "max_trades_per_day",
+          "passed": true,
+
+          "current": 17,
+
+          "maximum": 100
+        },
+
+        {
+          "validation": "max_trades_per_ticker",
+          "passed": true,
+
+          "ticker": "NVDA",
+
+          "current": 2,
+
+          "maximum": 3
+        },
+
+        {
+          "validation": "max_trades_per_sector",
+          "passed": true,
+
+          "sector": "technology",
+
+          "current": 1,
+
+          "maximum": 2
+        },
+
+        {
+          "validation": "max_trades_per_ticker",
+          "passed": true,
+
+          "ticker": "TSLA",
+
+          "current": 0,
+
+          "maximum": 3
+        },
+
+        {
+          "validation": "max_trades_per_sector",
+          "passed": true,
+
+          "sector": "consumer_cyclical",
+
+          "current": 1,
+
+          "maximum": 2
+        }
+      ]
+    },
+
+    "orders_snapshot": [
+
+      {
+        "order_id": "ORDER-1001",
+
+        "market": "stocks",
+
+        "ticker": "NVDA",
+
+        "side": "long",
+
+        "quantity": 100,
+
+        "entry_price": 176.55,
+
+        "status": "open"
+      },
+
+      {
+        "order_id": "ORDER-1002",
+
+        "market": "stocks",
+
+        "ticker": "NVDA",
+
+        "side": "long",
+
+        "quantity": 50,
+
+        "entry_price": 178.10,
+
+        "status": "open"
+      },
+
+      {
+        "order_id": "ORDER-2001",
+
+        "market": "stocks",
+
+        "ticker": "TSLA",
+
+        "side": "short",
+
+        "quantity": 75,
+
+        "entry_price": 248.75,
+
+        "status": "open"
+      },
+
+      {
+        "order_id": "ORDER-3001",
+
+        "market": "crypto",
+
+        "ticker": "BTCUSD",
+
+        "side": "long",
+
+        "quantity": 0.25,
+
+        "entry_price": 65000.00,
+
+        "status": "closed"
+      }
+    ],
+
+    "order_lines": [
+
+      {
+        "order_line_id": "7cf1d6d8-f687-48f1-8267-63a23fbe79fb",
+
+        "signal_id": "a7cc4d8a-f83b-4c78-9d83-2ac55f93b8c7",
+
+        "status": "approved",
+
+        "market": "stocks",
+
+        "ticker": "NVDA",
+
+        "signal": "buy",
+
+        "direction": "long",
+
+        "market_regime": "bullish_quiet",
+
+        "sector": "technology",
+
+        "industry": "semiconductors",
+
+        "reward_risk_ratio": 3.0,
+
+        "take_profit_percentage": 30.0,
+
+        "stop_loss_percentage": 1.0,
+
+        "consensus_percentage": 92.86,
+
+        "market_timestamp": 1610144700000,
+
+        "signal_generated_at": 1780000001234
+      },
+
+      {
+        "order_line_id": "d04cd578-b490-4760-abf3-a50ba65e6350",
+
+        "signal_id": "794b4e09-659c-4bc2-ab5b-77cc37dbe170",
+
+        "status": "approved",
+
+        "market": "stocks",
+
+        "ticker": "TSLA",
+
+        "signal": "sell",
+
+        "direction": "short",
+
+        "market_regime": "bearish_volatile",
+
+        "sector": "consumer_cyclical",
+
+        "industry": "auto_manufacturers",
+
+        "reward_risk_ratio": 2.0,
+
+        "take_profit_percentage": 30.0,
+
+        "stop_loss_percentage": 1.0,
+
+        "consensus_percentage": 81.82,
+
+        "market_timestamp": 1610144700000,
+
+        "signal_generated_at": 1780000001234
+      }
+    ]
+  }
+}
+
