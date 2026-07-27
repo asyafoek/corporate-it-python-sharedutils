@@ -268,7 +268,6 @@ class Provider(
                         2
                     ),
 
-
                 "validations":
                     long_confidence.validations
             })
@@ -304,7 +303,7 @@ class Provider(
                                 "contribution"
                             ]
                             for validation
-                            in long_confidence.validations
+                            in short_confidence.validations
                         ) * 100,
                         2
                     ),
