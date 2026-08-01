@@ -54,7 +54,7 @@ class Provider(
 
                 "volume_ratio_gt_2":
                     float(
-                        row["volume_ratio"]
+                        row["rvol"]
                     ) > 2.0,
 
                 "close_gt_open":
@@ -74,7 +74,7 @@ class Provider(
 
                 "volume_ratio_gt_2":
                     float(
-                        row["volume_ratio"]
+                        row["rvol"]
                     ) > 2.0,
 
                 "close_lt_open":
@@ -96,7 +96,7 @@ class Provider(
 
                 "volume_ratio_gt_2":
                     float(
-                        row["volume_ratio"]
+                        row["rvol"]
                     ) > 1.5,
 
                 "close_gt_open":
@@ -116,7 +116,7 @@ class Provider(
 
                 "volume_ratio_gt_2":
                     float(
-                        row["volume_ratio"]
+                        row["rvol"]
                     ) > 1.5,
 
                 "close_lt_open":
@@ -138,7 +138,7 @@ class Provider(
 
                 "volume_ratio_gt_2":
                     float(
-                        row["volume_ratio"]
+                        row["rvol"]
                     ) > 1.0,
 
                 "close_gt_open":
@@ -158,7 +158,7 @@ class Provider(
 
                 "volume_ratio_gt_2":
                     float(
-                        row["volume_ratio"]
+                        row["rvol"]
                     ) > 1.0,
 
                 "close_lt_open":

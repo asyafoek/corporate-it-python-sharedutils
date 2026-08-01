@@ -18,13 +18,13 @@ class Provider(
 ):
 
     LONG_WEIGHTS = {
-        "atr14_gt_1": 0.40,
+        "atr_14_gt_1": 0.40,
         "volume_ratio_gt_2": 0.30,
         "close_gt_ema20": 0.30
     }
 
     SHORT_WEIGHTS = {
-        "atr14_gt_1": 0.40,
+        "atr_14_gt_1": 0.40,
         "volume_ratio_gt_2": 0.30,
         "close_lt_ema20": 0.30
     }
@@ -47,9 +47,9 @@ class Provider(
 
             long_conditions = {
 
-                "atr14_gt_1":
+                "atr_14_gt_1":
                     float(
-                        row["atr14"]
+                        row["atr_14"]
                     ) > 1.0,
 
                 "volume_ratio_gt_2":
@@ -67,9 +67,9 @@ class Provider(
 
             short_conditions = {
 
-                "atr14_gt_1":
+                "atr_14_gt_1":
                     float(
-                        row["atr14"]
+                        row["atr_14"]
                     ) > 1.0,
 
                 "volume_ratio_gt_2":
@@ -89,9 +89,9 @@ class Provider(
 
             long_conditions = {
 
-                "atr14_gt_1":
+                "atr_14_gt_1":
                     float(
-                        row["atr14"]
+                        row["atr_14"]
                     ) > 2.0,
 
                 "volume_ratio_gt_2":
@@ -109,9 +109,9 @@ class Provider(
 
             short_conditions = {
 
-                "atr14_gt_1":
+                "atr_14_gt_1":
                     float(
-                        row["atr14"]
+                        row["atr_14"]
                     ) > 2.0,
 
                 "volume_ratio_gt_2":
@@ -131,9 +131,9 @@ class Provider(
 
             long_conditions = {
 
-                "atr14_gt_1":
+                "atr_14_gt_1":
                     float(
-                        row["atr14"]
+                        row["atr_14"]
                     ) > 3.0,
 
                 "volume_ratio_gt_2":
@@ -151,9 +151,9 @@ class Provider(
 
             short_conditions = {
 
-                "atr14_gt_1":
+                "atr_14_gt_1":
                     float(
-                        row["atr14"]
+                        row["atr_14"]
                     ) > 3.0,
 
                 "volume_ratio_gt_2":

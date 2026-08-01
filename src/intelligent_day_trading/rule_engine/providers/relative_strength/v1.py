@@ -61,7 +61,7 @@ class Provider(
 
                 "volume_ratio_gt_1_5":
                     float(
-                        row["volume_ratio"]
+                        row["rvol"]
                     ) > 1.5
             }
 
@@ -81,7 +81,7 @@ class Provider(
 
                 "volume_ratio_gt_1_5":
                     float(
-                        row["volume_ratio"]
+                        row["rvol"]
                     ) > 1.5
             }
 
@@ -103,7 +103,7 @@ class Provider(
 
                 "volume_ratio_gt_1_5":
                     float(
-                        row["volume_ratio"]
+                        row["rvol"]
                     ) > 1.2
             }
 
@@ -123,7 +123,7 @@ class Provider(
 
                 "volume_ratio_gt_1_5":
                     float(
-                        row["volume_ratio"]
+                        row["rvol"]
                     ) > 1.2
             }
 
@@ -145,7 +145,7 @@ class Provider(
 
                 "volume_ratio_gt_1_5":
                     float(
-                        row["volume_ratio"]
+                        row["rvol"]
                     ) > 1.0
             }
 
@@ -165,7 +165,7 @@ class Provider(
 
                 "volume_ratio_gt_1_5":
                     float(
-                        row["volume_ratio"]
+                        row["rvol"]
                     ) > 1.0
             }
 

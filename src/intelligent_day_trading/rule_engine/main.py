@@ -136,13 +136,13 @@ def main():
                 "sma50": 164.0,
                 "sma200": 148.0,
 
-                "rsi14": 65.0,
+                "rsi_14": 65.0,
 
                 "macd": 1.25,
                 "macd_signal": 1.00,
                 "macd_histogram": 0.25,
 
-                "volume_ratio": 2.5,
+                "rvol": 2.5,
 
                 "high_20": 173.0,
                 "high_50": 172.0,
@@ -150,7 +150,7 @@ def main():
 
                 "low_20": 160.0,
 
-                "atr14": 2.1,
+                "atr_14": 2.1,
 
                 "relative_strength": 1.4,
 

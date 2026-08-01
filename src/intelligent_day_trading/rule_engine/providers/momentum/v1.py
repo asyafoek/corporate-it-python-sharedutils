@@ -53,8 +53,8 @@ class Provider(
             row["ema50"]
         )
 
-        rsi14 = float(
-            row["rsi14"]
+        rsi_14 = float(
+            row["rsi_14"]
         )
 
         volume_ratio = float(
@@ -79,7 +79,7 @@ class Provider(
                     ema20 > ema50,
 
                 "rsi_gt_55":
-                    rsi14 > 55.0,
+                    rsi_14 > 55.0,
 
                 "volume_ratio_gt_1_5":
                     volume_ratio > 1.5
@@ -94,7 +94,7 @@ class Provider(
                     ema20 < ema50,
 
                 "rsi_lt_45":
-                    rsi14 < 45.0,
+                    rsi_14 < 45.0,
 
                 "volume_ratio_gt_1_5":
                     volume_ratio > 1.5
@@ -111,7 +111,7 @@ class Provider(
                     ema20 > ema50,
 
                 "rsi_gt_55":
-                    rsi14 > 50.0,
+                    rsi_14 > 50.0,
 
                 "volume_ratio_gt_1_5":
                     volume_ratio > 1.2
@@ -126,7 +126,7 @@ class Provider(
                     ema20 < ema50,
 
                 "rsi_lt_45":
-                    rsi14 < 50.0,
+                    rsi_14 < 50.0,
 
                 "volume_ratio_gt_1_5":
                     volume_ratio > 1.2
@@ -143,7 +143,7 @@ class Provider(
                     ema20 > ema50,
 
                 "rsi_gt_55":
-                    rsi14 > 50.0,
+                    rsi_14 > 50.0,
 
                 "volume_ratio_gt_1_5":
                     volume_ratio > 1.0
@@ -158,7 +158,7 @@ class Provider(
                     ema20 < ema50,
 
                 "rsi_lt_45":
-                    rsi14 < 50.0,
+                    rsi_14 < 50.0,
 
                 "volume_ratio_gt_1_5":
                     volume_ratio > 1.0

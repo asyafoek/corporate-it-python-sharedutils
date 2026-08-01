@@ -75,12 +75,12 @@ class Provider(
 
                 "rsi_lt_40":
                     float(
-                        row["rsi14"]
+                        row["rsi_14"]
                     ) < 40.0,
 
                 "volume_ratio_gt_1":
                     float(
-                        row["volume_ratio"]
+                        row["rvol"]
                     ) > 1.0
             }
 
@@ -91,12 +91,12 @@ class Provider(
 
                 "rsi_gt_60":
                     float(
-                        row["rsi14"]
+                        row["rsi_14"]
                     ) > 60.0,
 
                 "volume_ratio_gt_1":
                     float(
-                        row["volume_ratio"]
+                        row["rvol"]
                     ) > 1.0
             }
 
@@ -109,12 +109,12 @@ class Provider(
 
                 "rsi_lt_40":
                     float(
-                        row["rsi14"]
+                        row["rsi_14"]
                     ) < 45.0,
 
                 "volume_ratio_gt_1":
                     float(
-                        row["volume_ratio"]
+                        row["rvol"]
                     ) > 1.0
             }
 
@@ -125,12 +125,12 @@ class Provider(
 
                 "rsi_gt_60":
                     float(
-                        row["rsi14"]
+                        row["rsi_14"]
                     ) > 55.0,
 
                 "volume_ratio_gt_1":
                     float(
-                        row["volume_ratio"]
+                        row["rvol"]
                     ) > 1.0
             }
 
@@ -143,12 +143,12 @@ class Provider(
 
                 "rsi_lt_40":
                     float(
-                        row["rsi14"]
+                        row["rsi_14"]
                     ) < 50.0,
 
                 "volume_ratio_gt_1":
                     float(
-                        row["volume_ratio"]
+                        row["rvol"]
                     ) > 1.0
             }
 
@@ -159,12 +159,12 @@ class Provider(
 
                 "rsi_gt_60":
                     float(
-                        row["rsi14"]
+                        row["rsi_14"]
                     ) > 50.0,
 
                 "volume_ratio_gt_1":
                     float(
-                        row["volume_ratio"]
+                        row["rvol"]
                     ) > 1.0
             }
 

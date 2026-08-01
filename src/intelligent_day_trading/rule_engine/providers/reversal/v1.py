@@ -49,7 +49,7 @@ class Provider(
 
                 "rsi_lt_25":
                     float(
-                        row["rsi14"]
+                        row["rsi_14"]
                     ) < 25.0,
 
                 "close_gt_ema8":
@@ -61,7 +61,7 @@ class Provider(
 
                 "volume_ratio_gt_1_5":
                     float(
-                        row["volume_ratio"]
+                        row["rvol"]
                     ) > 1.5
             }
 
@@ -69,7 +69,7 @@ class Provider(
 
                 "rsi_gt_75":
                     float(
-                        row["rsi14"]
+                        row["rsi_14"]
                     ) > 75.0,
 
                 "close_lt_ema8":
@@ -81,7 +81,7 @@ class Provider(
 
                 "volume_ratio_gt_1_5":
                     float(
-                        row["volume_ratio"]
+                        row["rvol"]
                     ) > 1.5
             }
 
@@ -91,7 +91,7 @@ class Provider(
 
                 "rsi_lt_25":
                     float(
-                        row["rsi14"]
+                        row["rsi_14"]
                     ) < 30.0,
 
                 "close_gt_ema8":
@@ -103,7 +103,7 @@ class Provider(
 
                 "volume_ratio_gt_1_5":
                     float(
-                        row["volume_ratio"]
+                        row["rvol"]
                     ) > 1.2
             }
 
@@ -111,7 +111,7 @@ class Provider(
 
                 "rsi_gt_75":
                     float(
-                        row["rsi14"]
+                        row["rsi_14"]
                     ) > 70.0,
 
                 "close_lt_ema8":
@@ -123,7 +123,7 @@ class Provider(
 
                 "volume_ratio_gt_1_5":
                     float(
-                        row["volume_ratio"]
+                        row["rvol"]
                     ) > 1.2
             }
 
@@ -133,7 +133,7 @@ class Provider(
 
                 "rsi_lt_25":
                     float(
-                        row["rsi14"]
+                        row["rsi_14"]
                     ) < 35.0,
 
                 "close_gt_ema8":
@@ -145,7 +145,7 @@ class Provider(
 
                 "volume_ratio_gt_1_5":
                     float(
-                        row["volume_ratio"]
+                        row["rvol"]
                     ) > 1.0
             }
 
@@ -153,7 +153,7 @@ class Provider(
 
                 "rsi_gt_75":
                     float(
-                        row["rsi14"]
+                        row["rsi_14"]
                     ) > 65.0,
 
                 "close_lt_ema8":
@@ -165,7 +165,7 @@ class Provider(
 
                 "volume_ratio_gt_1_5":
                     float(
-                        row["volume_ratio"]
+                        row["rvol"]
                     ) > 1.0
             }
 

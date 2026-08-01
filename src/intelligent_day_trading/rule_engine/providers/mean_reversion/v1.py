@@ -67,7 +67,7 @@ class Provider(
 
                 "rsi_lt_30":
                     float(
-                        row["rsi14"]
+                        row["rsi_14"]
                     ) < 30.0,
 
                 "distance_from_ema20_gt_3":
@@ -75,7 +75,7 @@ class Provider(
 
                 "volume_ratio_gt_1":
                     float(
-                        row["volume_ratio"]
+                        row["rvol"]
                     ) > 1.0
             }
 
@@ -83,7 +83,7 @@ class Provider(
 
                 "rsi_gt_70":
                     float(
-                        row["rsi14"]
+                        row["rsi_14"]
                     ) > 70.0,
 
                 "distance_above_ema20_gt_3":
@@ -91,7 +91,7 @@ class Provider(
 
                 "volume_ratio_gt_1":
                     float(
-                        row["volume_ratio"]
+                        row["rvol"]
                     ) > 1.0
             }
 
@@ -101,7 +101,7 @@ class Provider(
 
                 "rsi_lt_30":
                     float(
-                        row["rsi14"]
+                        row["rsi_14"]
                     ) < 35.0,
 
                 "distance_from_ema20_gt_3":
@@ -109,7 +109,7 @@ class Provider(
 
                 "volume_ratio_gt_1":
                     float(
-                        row["volume_ratio"]
+                        row["rvol"]
                     ) > 1.0
             }
 
@@ -117,7 +117,7 @@ class Provider(
 
                 "rsi_gt_70":
                     float(
-                        row["rsi14"]
+                        row["rsi_14"]
                     ) > 65.0,
 
                 "distance_above_ema20_gt_3":
@@ -125,7 +125,7 @@ class Provider(
 
                 "volume_ratio_gt_1":
                     float(
-                        row["volume_ratio"]
+                        row["rvol"]
                     ) > 1.0
             }
 
@@ -135,7 +135,7 @@ class Provider(
 
                 "rsi_lt_30":
                     float(
-                        row["rsi14"]
+                        row["rsi_14"]
                     ) < 40.0,
 
                 "distance_from_ema20_gt_3":
@@ -143,7 +143,7 @@ class Provider(
 
                 "volume_ratio_gt_1":
                     float(
-                        row["volume_ratio"]
+                        row["rvol"]
                     ) > 1.0
             }
 
@@ -151,7 +151,7 @@ class Provider(
 
                 "rsi_gt_70":
                     float(
-                        row["rsi14"]
+                        row["rsi_14"]
                     ) > 60.0,
 
                 "distance_above_ema20_gt_3":
@@ -159,7 +159,7 @@ class Provider(
 
                 "volume_ratio_gt_1":
                     float(
-                        row["volume_ratio"]
+                        row["rvol"]
                     ) > 1.0
             }
 

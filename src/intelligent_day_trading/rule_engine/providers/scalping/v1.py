@@ -56,12 +56,12 @@ class Provider(
 
                 "volume_ratio_gt_2":
                     float(
-                        row["volume_ratio"]
+                        row["rvol"]
                     ) > 2.0,
 
                 "rsi_between_50_70":
                     50.0 <= float(
-                        row["rsi14"]
+                        row["rsi_14"]
                     ) <= 70.0
             }
 
@@ -76,12 +76,12 @@ class Provider(
 
                 "volume_ratio_gt_2":
                     float(
-                        row["volume_ratio"]
+                        row["rvol"]
                     ) > 2.0,
 
                 "rsi_between_30_50":
                     30.0 <= float(
-                        row["rsi14"]
+                        row["rsi_14"]
                     ) <= 50.0
             }
 
@@ -98,12 +98,12 @@ class Provider(
 
                 "volume_ratio_gt_2":
                     float(
-                        row["volume_ratio"]
+                        row["rvol"]
                     ) > 1.5,
 
                 "rsi_between_50_70":
                     45.0 <= float(
-                        row["rsi14"]
+                        row["rsi_14"]
                     ) <= 75.0
             }
 
@@ -118,12 +118,12 @@ class Provider(
 
                 "volume_ratio_gt_2":
                     float(
-                        row["volume_ratio"]
+                        row["rvol"]
                     ) > 1.5,
 
                 "rsi_between_30_50":
                     25.0 <= float(
-                        row["rsi14"]
+                        row["rsi_14"]
                     ) <= 55.0
             }
 
@@ -140,12 +140,12 @@ class Provider(
 
                 "volume_ratio_gt_2":
                     float(
-                        row["volume_ratio"]
+                        row["rvol"]
                     ) > 1.0,
 
                 "rsi_between_50_70":
                     40.0 <= float(
-                        row["rsi14"]
+                        row["rsi_14"]
                     ) <= 80.0
             }
 
@@ -160,12 +160,12 @@ class Provider(
 
                 "volume_ratio_gt_2":
                     float(
-                        row["volume_ratio"]
+                        row["rvol"]
                     ) > 1.0,
 
                 "rsi_between_30_50":
                     20.0 <= float(
-                        row["rsi14"]
+                        row["rsi_14"]
                     ) <= 60.0
             }
 
