@@ -50,6 +50,12 @@ class Provider(
         ):
             return []
 
+        rvol = float(
+            row["rvol"]
+            if row["rvol"] is not None
+            else 1.0
+        )
+
         horizon = profile[
             "strategy_trading_horizon"
         ]
