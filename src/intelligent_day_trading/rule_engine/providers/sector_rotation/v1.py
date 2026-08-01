@@ -39,6 +39,18 @@ class Provider(
 
         row = market_data.iloc[-1]
 
+        if any(
+            row.get(col) is None
+            for col in [
+                "sector_strength",
+                "relative_strength",
+                "c",
+                "ema20"
+            ]
+        ):
+            return []
+
+
         horizon = profile[
             "strategy_trading_horizon"
         ]

@@ -41,6 +41,17 @@ class Provider(
 
         row = market_data.iloc[-1]
 
+        if any(
+            row.get(col) is None
+            for col in [
+                "c",
+                "ema20",
+                "ema50",
+                "rsi_14"
+            ]
+        ):
+            return []
+
         close = float(
             row["c"]
         )
