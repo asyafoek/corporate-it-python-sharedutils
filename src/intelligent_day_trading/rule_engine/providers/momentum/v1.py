@@ -68,7 +68,7 @@ class Provider(
             "strategy_trading_horizon"
         ]
 
-        if horizon == "intraday":
+        if horizon.lower() == "intraday":
 
             long_conditions = {
 
@@ -100,7 +100,7 @@ class Provider(
                     volume_ratio > 1.5
             }
 
-        elif horizon == "swing":
+        elif horizon.lower() == "swing":
 
             long_conditions = {
 
@@ -132,7 +132,7 @@ class Provider(
                     volume_ratio > 1.2
             }
 
-        elif horizon == "position":
+        elif horizon.lower() == "position":
 
             long_conditions = {
 
