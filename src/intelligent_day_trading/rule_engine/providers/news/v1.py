@@ -45,6 +45,16 @@ class Provider(
             else 0
         )
 
+        if any(
+            row.get(col) is None
+            for col in [
+                "rvol",
+                "c",
+                "ema20"
+            ]
+        ):
+            return []
+            
         horizon = profile[
             "strategy_trading_horizon"
         ]
