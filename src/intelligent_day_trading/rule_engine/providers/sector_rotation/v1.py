@@ -39,6 +39,7 @@ class Provider(
 
         row = market_data.iloc[-1]
 
+
         if any(
             row.get(col) is None
             for col in [
