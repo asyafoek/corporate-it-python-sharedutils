@@ -20,13 +20,13 @@ class Provider(
     LONG_WEIGHTS = {
         "rsi_lt_30": 0.50,
         "distance_from_ema20_gt_3": 0.30,
-        "volume_ratio_gt_1": 0.20
+        "rvol_gt_1": 0.20
     }
 
     SHORT_WEIGHTS = {
         "rsi_gt_70": 0.50,
         "distance_above_ema20_gt_3": 0.30,
-        "volume_ratio_gt_1": 0.20
+        "rvol_gt_1": 0.20
     }
 
     def evaluate(
@@ -73,7 +73,7 @@ class Provider(
                 "distance_from_ema20_gt_3":
                     distance_below_ema20 > 3.0,
 
-                "volume_ratio_gt_1":
+                "rvol_gt_1":
                     float(
                         row["rvol"]
                     ) > 1.0
@@ -89,7 +89,7 @@ class Provider(
                 "distance_above_ema20_gt_3":
                     distance_above_ema20 > 3.0,
 
-                "volume_ratio_gt_1":
+                "rvol_gt_1":
                     float(
                         row["rvol"]
                     ) > 1.0
@@ -107,7 +107,7 @@ class Provider(
                 "distance_from_ema20_gt_3":
                     distance_below_ema20 > 5.0,
 
-                "volume_ratio_gt_1":
+                "rvol_gt_1":
                     float(
                         row["rvol"]
                     ) > 1.0
@@ -123,7 +123,7 @@ class Provider(
                 "distance_above_ema20_gt_3":
                     distance_above_ema20 > 5.0,
 
-                "volume_ratio_gt_1":
+                "rvol_gt_1":
                     float(
                         row["rvol"]
                     ) > 1.0
@@ -141,7 +141,7 @@ class Provider(
                 "distance_from_ema20_gt_3":
                     distance_below_ema20 > 8.0,
 
-                "volume_ratio_gt_1":
+                "rvol_gt_1":
                     float(
                         row["rvol"]
                     ) > 1.0
@@ -157,7 +157,7 @@ class Provider(
                 "distance_above_ema20_gt_3":
                     distance_above_ema20 > 8.0,
 
-                "volume_ratio_gt_1":
+                "rvol_gt_1":
                     float(
                         row["rvol"]
                     ) > 1.0

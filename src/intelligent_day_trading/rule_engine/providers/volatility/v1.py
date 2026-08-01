@@ -19,13 +19,13 @@ class Provider(
 
     LONG_WEIGHTS = {
         "atr_14_gt_1": 0.40,
-        "volume_ratio_gt_2": 0.30,
+        "rvol_gt_2": 0.30,
         "close_gt_ema20": 0.30
     }
 
     SHORT_WEIGHTS = {
         "atr_14_gt_1": 0.40,
-        "volume_ratio_gt_2": 0.30,
+        "rvol_gt_2": 0.30,
         "close_lt_ema20": 0.30
     }
 
@@ -52,9 +52,9 @@ class Provider(
                         row["atr_14"]
                     ) > 1.0,
 
-                "volume_ratio_gt_2":
+                "rvol_gt_2":
                     float(
-                        row["volume_ratio"]
+                        row["rvol"]
                     ) > 2.0,
 
                 "close_gt_ema20":
@@ -72,9 +72,9 @@ class Provider(
                         row["atr_14"]
                     ) > 1.0,
 
-                "volume_ratio_gt_2":
+                "rvol_gt_2":
                     float(
-                        row["volume_ratio"]
+                        row["rvol"]
                     ) > 2.0,
 
                 "close_lt_ema20":
@@ -94,9 +94,9 @@ class Provider(
                         row["atr_14"]
                     ) > 2.0,
 
-                "volume_ratio_gt_2":
+                "rvol_gt_2":
                     float(
-                        row["volume_ratio"]
+                        row["rvol"]
                     ) > 1.5,
 
                 "close_gt_ema20":
@@ -114,9 +114,9 @@ class Provider(
                         row["atr_14"]
                     ) > 2.0,
 
-                "volume_ratio_gt_2":
+                "rvol_gt_2":
                     float(
-                        row["volume_ratio"]
+                        row["rvol"]
                     ) > 1.5,
 
                 "close_lt_ema20":
@@ -136,9 +136,9 @@ class Provider(
                         row["atr_14"]
                     ) > 3.0,
 
-                "volume_ratio_gt_2":
+                "rvol_gt_2":
                     float(
-                        row["volume_ratio"]
+                        row["rvol"]
                     ) > 1.0,
 
                 "close_gt_ema20":
@@ -156,9 +156,9 @@ class Provider(
                         row["atr_14"]
                     ) > 3.0,
 
-                "volume_ratio_gt_2":
+                "rvol_gt_2":
                     float(
-                        row["volume_ratio"]
+                        row["rvol"]
                     ) > 1.0,
 
                 "close_lt_ema20":

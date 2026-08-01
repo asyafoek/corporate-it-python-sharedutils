@@ -19,13 +19,13 @@ class Provider(
 
     LONG_WEIGHTS = {
         "gap_gt_3": 0.40,
-        "volume_ratio_gt_2": 0.30,
+        "rvol_gt_2": 0.30,
         "close_gt_open": 0.30
     }
 
     SHORT_WEIGHTS = {
         "gap_lt_minus_3": 0.40,
-        "volume_ratio_gt_2": 0.30,
+        "rvol_gt_2": 0.30,
         "close_lt_open": 0.30
     }
 
@@ -52,7 +52,7 @@ class Provider(
                         row["gap_percentage"]
                     ) > 3.0,
 
-                "volume_ratio_gt_2":
+                "rvol_gt_2":
                     float(
                         row["rvol"]
                     ) > 2.0,
@@ -72,7 +72,7 @@ class Provider(
                         row["gap_percentage"]
                     ) < -3.0,
 
-                "volume_ratio_gt_2":
+                "rvol_gt_2":
                     float(
                         row["rvol"]
                     ) > 2.0,
@@ -94,7 +94,7 @@ class Provider(
                         row["gap_percentage"]
                     ) > 2.0,
 
-                "volume_ratio_gt_2":
+                "rvol_gt_2":
                     float(
                         row["rvol"]
                     ) > 1.5,
@@ -114,7 +114,7 @@ class Provider(
                         row["gap_percentage"]
                     ) < -2.0,
 
-                "volume_ratio_gt_2":
+                "rvol_gt_2":
                     float(
                         row["rvol"]
                     ) > 1.5,
@@ -136,7 +136,7 @@ class Provider(
                         row["gap_percentage"]
                     ) > 1.0,
 
-                "volume_ratio_gt_2":
+                "rvol_gt_2":
                     float(
                         row["rvol"]
                     ) > 1.0,
@@ -156,7 +156,7 @@ class Provider(
                         row["gap_percentage"]
                     ) < -1.0,
 
-                "volume_ratio_gt_2":
+                "rvol_gt_2":
                     float(
                         row["rvol"]
                     ) > 1.0,

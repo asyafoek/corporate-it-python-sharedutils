@@ -19,13 +19,13 @@ class Provider(
 
     LONG_WEIGHTS = {
         "news_sentiment_gt_075": 0.50,
-        "volume_ratio_gt_2": 0.30,
+        "rvol_gt_2": 0.30,
         "close_gt_ema20": 0.20
     }
 
     SHORT_WEIGHTS = {
         "news_sentiment_lt_minus_075": 0.50,
-        "volume_ratio_gt_2": 0.30,
+        "rvol_gt_2": 0.30,
         "close_lt_ema20": 0.20
     }
 
@@ -39,6 +39,12 @@ class Provider(
 
         row = market_data.iloc[-1]
 
+        news_sentiment = float(
+            row["news_sentiment"]
+            if row["news_sentiment"] is not None
+            else 0
+        )
+
         horizon = profile[
             "strategy_trading_horizon"
         ]
@@ -48,11 +54,9 @@ class Provider(
             long_conditions = {
 
                 "news_sentiment_gt_075":
-                    float(
-                        row["news_sentiment"]
-                    ) > 0.75,
+                    news_sentiment > 0.75,
 
-                "volume_ratio_gt_2":
+                "rvol_gt_2":
                     float(
                         row["rvol"]
                     ) > 2.0,
@@ -68,11 +72,9 @@ class Provider(
             short_conditions = {
 
                 "news_sentiment_lt_minus_075":
-                    float(
-                        row["news_sentiment"]
-                    ) < -0.75,
+                    news_sentiment < -0.75,
 
-                "volume_ratio_gt_2":
+                "rvol_gt_2":
                     float(
                         row["rvol"]
                     ) > 2.0,
@@ -90,11 +92,9 @@ class Provider(
             long_conditions = {
 
                 "news_sentiment_gt_075":
-                    float(
-                        row["news_sentiment"]
-                    ) > 0.50,
+                    news_sentiment > 0.50,
 
-                "volume_ratio_gt_2":
+                "rvol_gt_2":
                     float(
                         row["rvol"]
                     ) > 1.5,
@@ -110,11 +110,9 @@ class Provider(
             short_conditions = {
 
                 "news_sentiment_lt_minus_075":
-                    float(
-                        row["news_sentiment"]
-                    ) < -0.50,
+                    news_sentiment < -0.50,
 
-                "volume_ratio_gt_2":
+                "rvol_gt_2":
                     float(
                         row["rvol"]
                     ) > 1.5,
@@ -132,11 +130,9 @@ class Provider(
             long_conditions = {
 
                 "news_sentiment_gt_075":
-                    float(
-                        row["news_sentiment"]
-                    ) > 0.25,
+                    news_sentiment > 0.25,
 
-                "volume_ratio_gt_2":
+                "rvol_gt_2":
                     float(
                         row["rvol"]
                     ) > 1.0,
@@ -152,11 +148,9 @@ class Provider(
             short_conditions = {
 
                 "news_sentiment_lt_minus_075":
-                    float(
-                        row["news_sentiment"]
-                    ) < -0.25,
+                    news_sentiment < -0.25,
 
-                "volume_ratio_gt_2":
+                "rvol_gt_2":
                     float(
                         row["rvol"]
                     ) > 1.0,

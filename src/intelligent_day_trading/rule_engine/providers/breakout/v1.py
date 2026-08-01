@@ -19,13 +19,13 @@ class Provider(
 
     LONG_WEIGHTS = {
         "close_gt_high_20": 0.50,
-        "volume_ratio_gt_2": 0.30,
+        "rvol_gt_2": 0.30,
         "rsi_gt_60": 0.20
     }
 
     SHORT_WEIGHTS = {
         "close_lt_low_20": 0.50,
-        "volume_ratio_gt_2": 0.30,
+        "rvol_gt_2": 0.30,
         "rsi_lt_40": 0.20
     }
 
@@ -55,7 +55,7 @@ class Provider(
                         row["high_20"]
                     ),
 
-                "volume_ratio_gt_2":
+                "rvol_gt_2":
                     float(
                         row["rvol"]
                     ) > 2.0,
@@ -75,7 +75,7 @@ class Provider(
                         row["low_20"]
                     ),
 
-                "volume_ratio_gt_2":
+                "rvol_gt_2":
                     float(
                         row["rvol"]
                     ) > 2.0,
@@ -97,7 +97,7 @@ class Provider(
                         row["high_20"]
                     ),
 
-                "volume_ratio_gt_2":
+                "rvol_gt_2":
                     float(
                         row["rvol"]
                     ) > 1.5,
@@ -117,7 +117,7 @@ class Provider(
                         row["low_20"]
                     ),
 
-                "volume_ratio_gt_2":
+                "rvol_gt_2":
                     float(
                         row["rvol"]
                     ) > 1.5,
@@ -139,7 +139,7 @@ class Provider(
                         row["high_20"]
                     ),
 
-                "volume_ratio_gt_2":
+                "rvol_gt_2":
                     float(
                         row["rvol"]
                     ) > 1.0,
@@ -159,7 +159,7 @@ class Provider(
                         row["low_20"]
                     ),
 
-                "volume_ratio_gt_2":
+                "rvol_gt_2":
                     float(
                         row["rvol"]
                     ) > 1.0,

@@ -19,13 +19,13 @@ class Provider(
 
     LONG_WEIGHTS = {
         "close_gt_ema8": 0.35,
-        "volume_ratio_gt_2": 0.35,
+        "rvol_gt_2": 0.35,
         "rsi_between_50_70": 0.30
     }
 
     SHORT_WEIGHTS = {
         "close_lt_ema8": 0.35,
-        "volume_ratio_gt_2": 0.35,
+        "rvol_gt_2": 0.35,
         "rsi_between_30_50": 0.30
     }
 
@@ -54,7 +54,7 @@ class Provider(
                         row["ema8"]
                     ),
 
-                "volume_ratio_gt_2":
+                "rvol_gt_2":
                     float(
                         row["rvol"]
                     ) > 2.0,
@@ -74,7 +74,7 @@ class Provider(
                         row["ema8"]
                     ),
 
-                "volume_ratio_gt_2":
+                "rvol_gt_2":
                     float(
                         row["rvol"]
                     ) > 2.0,
@@ -96,7 +96,7 @@ class Provider(
                         row["ema8"]
                     ),
 
-                "volume_ratio_gt_2":
+                "rvol_gt_2":
                     float(
                         row["rvol"]
                     ) > 1.5,
@@ -116,7 +116,7 @@ class Provider(
                         row["ema8"]
                     ),
 
-                "volume_ratio_gt_2":
+                "rvol_gt_2":
                     float(
                         row["rvol"]
                     ) > 1.5,
@@ -138,7 +138,7 @@ class Provider(
                         row["ema8"]
                     ),
 
-                "volume_ratio_gt_2":
+                "rvol_gt_2":
                     float(
                         row["rvol"]
                     ) > 1.0,
@@ -158,7 +158,7 @@ class Provider(
                         row["ema8"]
                     ),
 
-                "volume_ratio_gt_2":
+                "rvol_gt_2":
                     float(
                         row["rvol"]
                     ) > 1.0,

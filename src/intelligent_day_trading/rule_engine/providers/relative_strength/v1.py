@@ -20,13 +20,13 @@ class Provider(
     LONG_WEIGHTS = {
         "relative_strength_gt_1": 0.50,
         "close_gt_ema20": 0.30,
-        "volume_ratio_gt_1_5": 0.20
+        "rvol_gt_1_5": 0.20
     }
 
     SHORT_WEIGHTS = {
         "relative_strength_lt_1": 0.50,
         "close_lt_ema20": 0.30,
-        "volume_ratio_gt_1_5": 0.20
+        "rvol_gt_1_5": 0.20
     }
 
     def evaluate(
@@ -59,7 +59,7 @@ class Provider(
                         row["ema20"]
                     ),
 
-                "volume_ratio_gt_1_5":
+                "rvol_gt_1_5":
                     float(
                         row["rvol"]
                     ) > 1.5
@@ -79,7 +79,7 @@ class Provider(
                         row["ema20"]
                     ),
 
-                "volume_ratio_gt_1_5":
+                "rvol_gt_1_5":
                     float(
                         row["rvol"]
                     ) > 1.5
@@ -101,7 +101,7 @@ class Provider(
                         row["ema20"]
                     ),
 
-                "volume_ratio_gt_1_5":
+                "rvol_gt_1_5":
                     float(
                         row["rvol"]
                     ) > 1.2
@@ -121,7 +121,7 @@ class Provider(
                         row["ema20"]
                     ),
 
-                "volume_ratio_gt_1_5":
+                "rvol_gt_1_5":
                     float(
                         row["rvol"]
                     ) > 1.2
@@ -143,7 +143,7 @@ class Provider(
                         row["ema20"]
                     ),
 
-                "volume_ratio_gt_1_5":
+                "rvol_gt_1_5":
                     float(
                         row["rvol"]
                     ) > 1.0
@@ -163,7 +163,7 @@ class Provider(
                         row["ema20"]
                     ),
 
-                "volume_ratio_gt_1_5":
+                "rvol_gt_1_5":
                     float(
                         row["rvol"]
                     ) > 1.0

@@ -21,14 +21,14 @@ class Provider(
         "close_gt_ema20": 0.25,
         "ema20_gt_ema50": 0.35,
         "rsi_gt_55": 0.20,
-        "volume_ratio_gt_1_5": 0.20
+        "rvol_gt_1_5": 0.20
     }
 
     SHORT_WEIGHTS = {
         "close_lt_ema20": 0.25,
         "ema20_lt_ema50": 0.35,
         "rsi_lt_45": 0.20,
-        "volume_ratio_gt_1_5": 0.20
+        "rvol_gt_1_5": 0.20
     }
 
     def evaluate(
@@ -57,9 +57,9 @@ class Provider(
             row["rsi_14"]
         )
 
-        volume_ratio = float(
+        rvol = float(
             row.get(
-                "volume_ratio",
+                "rvol",
                 1.0
             )
         )
@@ -81,8 +81,8 @@ class Provider(
                 "rsi_gt_55":
                     rsi_14 > 55.0,
 
-                "volume_ratio_gt_1_5":
-                    volume_ratio > 1.5
+                "rvol_gt_1_5":
+                    rvol > 1.5
             }
 
             short_conditions = {
@@ -96,8 +96,8 @@ class Provider(
                 "rsi_lt_45":
                     rsi_14 < 45.0,
 
-                "volume_ratio_gt_1_5":
-                    volume_ratio > 1.5
+                "rvol_gt_1_5":
+                    rvol > 1.5
             }
 
         elif horizon.lower() == "swing":
@@ -113,8 +113,8 @@ class Provider(
                 "rsi_gt_55":
                     rsi_14 > 50.0,
 
-                "volume_ratio_gt_1_5":
-                    volume_ratio > 1.2
+                "rvol_gt_1_5":
+                    rvol > 1.2
             }
 
             short_conditions = {
@@ -128,8 +128,8 @@ class Provider(
                 "rsi_lt_45":
                     rsi_14 < 50.0,
 
-                "volume_ratio_gt_1_5":
-                    volume_ratio > 1.2
+                "rvol_gt_1_5":
+                    rvol > 1.2
             }
 
         elif horizon.lower() == "position":
@@ -145,8 +145,8 @@ class Provider(
                 "rsi_gt_55":
                     rsi_14 > 50.0,
 
-                "volume_ratio_gt_1_5":
-                    volume_ratio > 1.0
+                "rvol_gt_1_5":
+                    rvol > 1.0
             }
 
             short_conditions = {
@@ -160,8 +160,8 @@ class Provider(
                 "rsi_lt_45":
                     rsi_14 < 50.0,
 
-                "volume_ratio_gt_1_5":
-                    volume_ratio > 1.0
+                "rvol_gt_1_5":
+                    rvol > 1.0
             }
 
         else:
