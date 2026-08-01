@@ -74,12 +74,12 @@ class Provider(
             row["rsi_14"]
         )
 
-        rvol = float(
-            row.get(
-                "rvol",
-                1.0
-            )
-        )
+        # rvol = float(
+        #     row.get(
+        #         "rvol",
+        #         1.0
+        #     )
+        # )
 
         horizon = profile[
             "strategy_trading_horizon"
