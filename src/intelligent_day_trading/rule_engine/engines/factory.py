@@ -8,9 +8,11 @@ class TradingRuleEngineFactory:
     @classmethod
     def create(
         cls,
-        version: int
+        version: int,
+        configuration=None
     ):
 
         return TradingRuleEngine(
-            version=version
+            version=version,
+            configuration=configuration
         )

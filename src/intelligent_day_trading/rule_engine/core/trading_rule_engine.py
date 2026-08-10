@@ -16,18 +16,22 @@ class TradingRuleEngine:
 
     def __init__(
         self,
-        version: int
+        version: int,
+        configuration=None
     ):
 
         self.version = version
 
         self.providers = []
 
-        configuration = (
-            ENGINE_CONFIGS.get(
-                version
+
+        if configuration is None:
+
+            configuration = (
+                ENGINE_CONFIGS.get(
+                    version
+                )
             )
-        )
 
         if configuration is None:
 
