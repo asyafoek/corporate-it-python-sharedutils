@@ -39,6 +39,16 @@ class Provider(
 
         row = market_data.iloc[-1]
 
+        # if any(
+        #     row.get(col) is None
+        #     for col in [
+        #         "ema20",
+        #         "ema50",
+        #         "ema200",
+        #         "c"
+        #     ]
+        # ):
+        #     return []
         if any(
             row.get(col) is None
             for col in [
@@ -48,13 +58,57 @@ class Provider(
                 "c"
             ]
         ):
-            return []
+            return [
+                {
+                    "engine_version": self.engine_version,
+                    "provider": self.provider_name,
+                    "provider_version": self.provider_version,
+                    "side": SIDE_LONG,
+                    "signal": None,
+                    "confidence_percentage": 0,
+                    "validations": []
+                },
+                {
+                    "engine_version": self.engine_version,
+                    "provider": self.provider_name,
+                    "provider_version": self.provider_version,
+                    "side": SIDE_SHORT,
+                    "signal": None,
+                    "confidence_percentage": 0,
+                    "validations": []
+                }
+            ]
 
+
+        # if (
+        #     float(row["ema50"]) == 0
+        #     or float(row["ema200"]) == 0
+        # ):
+        #     return []
         if (
             float(row["ema50"]) == 0
             or float(row["ema200"]) == 0
         ):
-            return []
+            return [
+                {
+                    "engine_version": self.engine_version,
+                    "provider": self.provider_name,
+                    "provider_version": self.provider_version,
+                    "side": SIDE_LONG,
+                    "signal": None,
+                    "confidence_percentage": 0,
+                    "validations": []
+                },
+                {
+                    "engine_version": self.engine_version,
+                    "provider": self.provider_name,
+                    "provider_version": self.provider_version,
+                    "side": SIDE_SHORT,
+                    "signal": None,
+                    "confidence_percentage": 0,
+                    "validations": []
+                }
+            ]
 
         horizon = profile[
             "strategy_trading_horizon"
@@ -329,5 +383,28 @@ class Provider(
                 "validations":
                     short_confidence.validations
             })
+
+        if not results:
+
+            return [
+                {
+                    "engine_version": self.engine_version,
+                    "provider": self.provider_name,
+                    "provider_version": self.provider_version,
+                    "side": SIDE_LONG,
+                    "signal": None,
+                    "confidence_percentage": 0,
+                    "validations": []
+                },
+                {
+                    "engine_version": self.engine_version,
+                    "provider": self.provider_name,
+                    "provider_version": self.provider_version,
+                    "side": SIDE_SHORT,
+                    "signal": None,
+                    "confidence_percentage": 0,
+                    "validations": []
+                }
+            ]
 
         return results

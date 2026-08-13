@@ -39,6 +39,17 @@ class Provider(
 
         row = market_data.iloc[-1]
 
+        # if any(
+        #     row.get(col) is None
+        #     for col in [
+        #         "c",
+        #         "high_20",
+        #         "low_20",
+        #         "rvol",
+        #         "rsi_14"
+        #     ]
+        # ):
+        #     return []
         if any(
             row.get(col) is None
             for col in [
@@ -49,7 +60,26 @@ class Provider(
                 "rsi_14"
             ]
         ):
-            return []
+            return [
+                {
+                    "engine_version": self.engine_version,
+                    "provider": self.provider_name,
+                    "provider_version": self.provider_version,
+                    "side": SIDE_LONG,
+                    "signal": None,
+                    "confidence_percentage": 0,
+                    "validations": []
+                },
+                {
+                    "engine_version": self.engine_version,
+                    "provider": self.provider_name,
+                    "provider_version": self.provider_version,
+                    "side": SIDE_SHORT,
+                    "signal": None,
+                    "confidence_percentage": 0,
+                    "validations": []
+                }
+            ]
 
         horizon = profile[
             "strategy_trading_horizon"
@@ -282,5 +312,30 @@ class Provider(
                 "validations":
                     short_confidence.validations
             })
+
+
+        if not results:
+
+            return [
+                {
+                    "engine_version": self.engine_version,
+                    "provider": self.provider_name,
+                    "provider_version": self.provider_version,
+                    "side": SIDE_LONG,
+                    "signal": None,
+                    "confidence_percentage": 0,
+                    "validations": []
+                },
+                {
+                    "engine_version": self.engine_version,
+                    "provider": self.provider_name,
+                    "provider_version": self.provider_version,
+                    "side": SIDE_SHORT,
+                    "signal": None,
+                    "confidence_percentage": 0,
+                    "validations": []
+                }
+            ]
+
 
         return results

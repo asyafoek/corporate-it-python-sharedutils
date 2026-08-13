@@ -45,6 +45,16 @@ class Provider(
             else 0
         )
 
+        # if any(
+        #     row.get(col) is None
+        #     for col in [
+        #         "rvol",
+        #         "c",
+        #         "ema20"
+        #     ]
+        # ):
+        #     return []
+
         if any(
             row.get(col) is None
             for col in [
@@ -53,8 +63,28 @@ class Provider(
                 "ema20"
             ]
         ):
-            return []
-            
+            return [
+                {
+                    "engine_version": self.engine_version,
+                    "provider": self.provider_name,
+                    "provider_version": self.provider_version,
+                    "side": SIDE_LONG,
+                    "signal": None,
+                    "confidence_percentage": 0,
+                    "validations": []
+                },
+                {
+                    "engine_version": self.engine_version,
+                    "provider": self.provider_name,
+                    "provider_version": self.provider_version,
+                    "side": SIDE_SHORT,
+                    "signal": None,
+                    "confidence_percentage": 0,
+                    "validations": []
+                }
+            ]
+
+
         rvol = float(
             row["rvol"]
             if row["rvol"] is not None
@@ -282,5 +312,28 @@ class Provider(
                 "validations":
                     short_confidence.validations
             })
+
+        if not results:
+
+            return [
+                {
+                    "engine_version": self.engine_version,
+                    "provider": self.provider_name,
+                    "provider_version": self.provider_version,
+                    "side": SIDE_LONG,
+                    "signal": None,
+                    "confidence_percentage": 0,
+                    "validations": []
+                },
+                {
+                    "engine_version": self.engine_version,
+                    "provider": self.provider_name,
+                    "provider_version": self.provider_version,
+                    "side": SIDE_SHORT,
+                    "signal": None,
+                    "confidence_percentage": 0,
+                    "validations": []
+                }
+            ]
 
         return results
