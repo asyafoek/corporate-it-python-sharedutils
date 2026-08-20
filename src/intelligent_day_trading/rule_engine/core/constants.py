@@ -26,14 +26,14 @@ SIGNAL_COLUMNS = [
     "evaluation"
 ]
 
-SIGNAL_BUY = "buy"
-SIGNAL_SELL = "sell"
-SIGNAL_HOLD = "hold"
-SIGNAL_WAIT = "wait"
+SIGNAL_BUY = "Buy"
+SIGNAL_SELL = "Sell"
+SIGNAL_HOLD = "Hold"
+SIGNAL_WAIT = "Wait"
 
-SIDE_LONG = "long"
-SIDE_SHORT = "short"
+SIDE_LONG = "Long"
+SIDE_SHORT = "Short"
 
-TRADING_STATE_ACTIVE = "active"
-TRADING_STATE_CLOSE_ONLY = "close_only"
-TRADING_STATE_DISABLED = "disabled"
+TRADING_STATE_ACTIVE = "Active"
+TRADING_STATE_CLOSE_ONLY = "CloseOnly"
+TRADING_STATE_DISABLED = "Disabled"
