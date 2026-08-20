@@ -38,7 +38,7 @@ class SignalSummaryBuilder:
 
         for signal in trading_signals:
 
-            side = signal["side"]
+            side = signal["side"].lower()
 
             summary[side]["provider_count"] += 1
 
