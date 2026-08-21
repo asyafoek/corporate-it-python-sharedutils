@@ -58,7 +58,7 @@ class SignalSummaryBuilder:
             summary[
                 side
             ][
-                signal["signal"]
+                signal["signal"].lower()
             ] += signal[
                 "confidence_percentage"
             ]
