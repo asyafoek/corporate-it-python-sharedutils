@@ -1,0 +1,15 @@
+{
+    "ticker": "NVDA",
+    "market": "stocks",
+    "updated": "2026-08-25T10:15:00Z",
+  
+    "open": 181.10,
+    "high": 181.35,
+    "low": 180.95,
+    "close": 181.25,
+  
+    "volume": 1250000,
+    "vwap": 181.18,
+
+    "trading_mode": "Backtest"
+  }

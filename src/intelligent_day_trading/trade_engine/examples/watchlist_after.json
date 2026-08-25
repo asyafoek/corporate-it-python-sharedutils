@@ -1,0 +1,21 @@
+{
+    "ticker": "NVDA",
+    "market": "stocks",
+    "updated": "2026-08-25T10:15:00Z",
+  
+    "open": 181.10,
+    "high": 181.35,
+    "low": 180.95,
+    "close": 181.25,
+  
+    "volume": 1250000,
+    "vwap": 181.18,
+
+    "trading_mode": "Paper",  
+    "profile_name": "asyafoek_stocks_paper",
+    "market_regime": "BULLISH_VOLATILE",
+
+    "opportunity_detected": true,
+
+    "run_id": "Paper_20260825"
+}
