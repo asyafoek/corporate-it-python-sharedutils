@@ -21,7 +21,7 @@ Kafka: watchlist-checked -> dev.corporate-it.processed.idts_trade.opportunity.de
     Apply trading strategy logic and generate Buy/Sell/Hold signals.
     Using same rule engine of 12 provider but on realtime 1min bars
     ↓
-Kafka: trade-signals-generated -> dev.corporate-it.processed.idts_trade.signal.determined.1
+Kafka: trade-signals-generated -> dev.corporate-it.processed.idts_trade.signal.evaluated.1
     ↓
 * Workload Risk Management (Risk Engine)
     Kelly Criterion, Position sizing, stop loss calculation, exposure limits, portfolio checks, risk approval/rejection.
