@@ -1,0 +1,14 @@
+GoalDefinition:
+  Metrics:
+    DrawdownPercent: 
+      Maximum: 1
+    TradeCount: 
+      Minimum: 30
+    WinningTradePercentage: 
+      Minimum: 60
+    CapitalGainPercent: 
+      Minimum: 5  
+  Optimizations:
+    Changes: 
+      Minimum: 1
+      Maximum: 1
