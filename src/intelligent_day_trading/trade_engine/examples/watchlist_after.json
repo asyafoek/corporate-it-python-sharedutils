@@ -13,6 +13,8 @@
     "market": "Stocks",
     "trading_mode": "Paper",  
 
+    "cache": [],    
+
     "dataflow": [
         { 
             "step": "signal_evalutated",
