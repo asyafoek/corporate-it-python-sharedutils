@@ -1,71 +1,92 @@
 from __future__ import annotations
-
 from copy import deepcopy
 from typing import Any
 from pathlib import Path
-from typing import Any
 from jinja2 import Template
 import requests
-import yaml
+from typing import Literal
 from copy import deepcopy
-from typing import Any
 
-def to_yaml(data: dict) -> str:
-    return yaml.safe_dump(
+import os
+import yaml
+
+def from_yaml(file_path: Path) -> dict:
+    configuration = None
+    with Path(file_path).open(
+        "r",
+        encoding="utf-8",
+    ) as file:
+        configuration = yaml.safe_load(file)
+    return configuration
+
+class DoubleQuotedDumper(yaml.SafeDumper):
+    pass
+
+
+def str_presenter(dumper, data):
+    return dumper.represent_scalar(
+        "tag:yaml.org,2002:str",
         data,
-        sort_keys=False,
-        allow_unicode=True,
-        default_flow_style=False,
+        style='"',
     )
 
 
-def _get_by_path(obj: dict[str, Any], path: str) -> Any:
-    current = obj
+DoubleQuotedDumper.add_representer(
+    str,
+    str_presenter,
+)
 
-    for part in path.split("."):
-        if not isinstance(current, dict):
-            return None
+def to_yaml(data: dict, useSafeDumper=True) -> str:
+    if useSafeDumper:
+        return yaml.safe_dump(
+            data,
+            sort_keys=False,
+            allow_unicode=True,
+            default_flow_style=False,
+        )
+    else:
+        return yaml.dump(
+            data,
+            Dumper=DoubleQuotedDumper,
+            sort_keys=False,
+            allow_unicode=True,
+            default_flow_style=False,
+        )
 
-        current = current.get(part)
-
-        if current is None:
-            return None
-
-    return current
-
-
-def _set_by_path(obj: dict[str, Any], path: str, value: Any) -> None:
-    parts = path.split(".")
-    current = obj
-
-    for part in parts[:-1]:
-        if part not in current or not isinstance(current[part], dict):
-            current[part] = {}
-
-        current = current[part]
-
-    current[parts[-1]] = value
 
 
 def _find_matching_item(
     items: list[dict[str, Any]],
-    match_items: list[tuple[str, Any]],
+    filters: list[dict[str, Any]],
 ) -> tuple[int | None, dict[str, Any] | None]:
-    """
-    Find first item where ALL match_items match.
-
-    Example:
-        [
-            ("id", "trend_bull"),
-            ("ruleEngineVersion", 2),
-        ]
-    """
 
     for index, item in enumerate(items):
-        if all(
-            _get_by_path(item, path) == value
-            for path, value in match_items
-        ):
+
+        matched = True
+
+        for filter_definition in filters:
+
+            current = item
+
+            path_parts = filter_definition["MatchPath"].split(".")
+            match_values = filter_definition["MatchValues"]
+
+            for part in path_parts:
+
+                if not isinstance(current, dict):
+                    current = None
+                    break
+
+                current = current.get(part)
+
+                if current is None:
+                    break
+
+            if current not in match_values:
+                matched = False
+                break
+
+        if matched:
             return index, item
 
     return None, None
@@ -73,61 +94,51 @@ def _find_matching_item(
 
 def update_yaml_array_item(
     yaml_data: dict[str, Any],
-    root_path: str,
-    match_items: list[tuple[str, Any]],
+    root_element: str,
+    filters: list[dict[str, Any]],
     updates: dict[str, Any],
 ) -> dict[str, Any]:
-    """
-    Update fields on an existing item.
-
-    Raises:
-        ValueError if item not found.
-    """
 
     result = deepcopy(yaml_data)
 
-    items = result[root_path]
+    items = result[root_element]
 
     if not isinstance(items, list):
-        raise ValueError(f"{root_path} is not a list")
+        raise ValueError(f"{root_element} is not a list")
 
     _, item = _find_matching_item(
         items=items,
-        match_items=match_items,
+        filters=filters,
     )
 
     if item is None:
         raise ValueError("No matching item found")
 
-    for path, value in updates.items():
-        _set_by_path(item, path, value)
+    _deep_merge(
+        target=item,
+        source=updates,
+    )
 
     return result
 
 
 def overwrite_yaml_array_item(
     yaml_data: dict[str, Any],
-    root_path: str,
-    match_items: list[tuple[str, Any]],
+    root_element: str,
+    filters: list[dict[str, Any]],
     item: dict[str, Any],
 ) -> dict[str, Any]:
-    """
-    Completely replace an existing item.
-
-    Raises:
-        ValueError if item not found.
-    """
 
     result = deepcopy(yaml_data)
 
-    items = result[root_path]
+    items = result[root_element]
 
     if not isinstance(items, list):
-        raise ValueError(f"{root_path} is not a list")
+        raise ValueError(f"{root_element} is not a list")
 
     index, _ = _find_matching_item(
         items=items,
-        match_items=match_items,
+        filters=filters,
     )
 
     if index is None:
@@ -138,33 +149,32 @@ def overwrite_yaml_array_item(
     return result
 
 
+
 def upsert_yaml_array_item(
     yaml_data: dict[str, Any],
-    root_path: str,
-    match_items: list[tuple[str, Any]],
+    root_element: str,
+    filters: list[dict[str, Any]],
     item: dict[str, Any],
 ) -> dict[str, Any]:
-    """
-    Update existing item if found.
-    Insert new item if not found.
-    """
 
     result = deepcopy(yaml_data)
 
-    items = result[root_path]
+    items = result[root_element]
 
     if not isinstance(items, list):
-        raise ValueError(f"{root_path} is not a list")
+        raise ValueError(f"{root_element} is not a list")
 
     _, existing_item = _find_matching_item(
         items=items,
-        match_items=match_items,
+        filters=filters,
     )
 
     if existing_item is not None:
 
-        for path, value in item.items():
-            _set_by_path(existing_item, path, value)
+        _deep_merge(
+            target=existing_item,
+            source=item,
+        )            
 
     else:
         items.append(deepcopy(item))
@@ -172,12 +182,28 @@ def upsert_yaml_array_item(
     return result
 
 
+def _deep_merge(
+    target: dict[str, Any],
+    source: dict[str, Any],
+) -> None:
+    for key, value in source.items():
+
+        if (
+            key in target
+            and isinstance(target[key], dict)
+            and isinstance(value, dict)
+        ):
+            _deep_merge(target[key], value)
+        else:
+            target[key] = deepcopy(value)
+
+
 def merge_yaml_array_item(
     yaml_data: dict[str, Any],
-    root_path: str,
-    operation: str,
-    match_items: list[tuple[str, Any]],
+    root_element: str,
+    filters: list[dict[str, Any]],
     data: dict[str, Any],
+    operation: Literal["update", "overwrite", "upsert"] = "update",
 ) -> dict[str, Any]:
     """
     Generic wrapper.
@@ -193,24 +219,24 @@ def merge_yaml_array_item(
     if operation == "update":
         return update_yaml_array_item(
             yaml_data=yaml_data,
-            root_path=root_path,
-            match_items=match_items,
+            root_element=root_element,
+            filters=filters,
             updates=data,
         )
 
     if operation == "overwrite":
         return overwrite_yaml_array_item(
             yaml_data=yaml_data,
-            root_path=root_path,
-            match_items=match_items,
+            root_element=root_element,
+            filters=filters,
             item=data,
         )
 
     if operation == "upsert":
         return upsert_yaml_array_item(
             yaml_data=yaml_data,
-            root_path=root_path,
-            match_items=match_items,
+            root_element=root_element,
+            filters=filters,
             item=data,
         )
 
@@ -219,7 +245,7 @@ def merge_yaml_array_item(
         "Supported values: update, overwrite, upsert."
     )
 
-   
+
 def filter_items(
     root_element: str,
     items: list[dict[str, Any]],
@@ -259,6 +285,8 @@ def filter_items(
     return {
         root_element: matches
     }
+
+
 
 def retrieve_candidate_configuration(
     yaml_file_path: str,
@@ -403,6 +431,7 @@ def main():
     # Profiles example
     profile_name = "asyafoek-stocks-long-swing-paper"
     filename = "../../../../../corporate-it-intelligent-daytrading/src/resources/application-data/profiles.yaml"
+    profiles_obj = from_yaml(Path(filename))
     paper_profile = retrieve_candidate_configuration(
         yaml_file_path=filename,
         root_element="Profiles",
@@ -422,6 +451,7 @@ def main():
     trend_regime="BEARISH"
     trend_volume="QUIET"
     filename = "../../../../../corporate-it-intelligent-daytrading/src/resources/application-data/riskreward.yaml"
+    riskreward_obj = from_yaml(Path(filename))
     paper_riskreward = retrieve_candidate_configuration(
         yaml_file_path=filename,
         root_element="RiskRewardNotations",
@@ -461,7 +491,7 @@ def main():
             }
         ],
     )
-    print(f"Config RuleProviders\n{to_yaml(paper_ruleproviders)}\n")
+    # print(f"Config RuleProviders\n{to_yaml(paper_ruleproviders)}\n")
 
     # Current Classification example
     current_class = "GoodLoss"
@@ -478,7 +508,7 @@ def main():
             }
         ],
     )
-    print(f"Current Classification\n{to_yaml(current_classification)}\n")
+    # print(f"Current Classification\n{to_yaml(current_classification)}\n")
 
     # Target Classification example
     target_class = "GoodProfit"
@@ -495,10 +525,9 @@ def main():
             }
         ],
     )
-    print(f"Target Classification\n{to_yaml(target_classification)}\n")
+    # print(f"Target Classification\n{to_yaml(target_classification)}\n")
 
     filename= Path("../../../../../corporate-it-intelligent-daytrading/src/resources/templates/openrouter-tune.txt")
-
     failed_metrics = [
         "Signal_Match", 
         "Entry_Efficiency", 
@@ -506,7 +535,6 @@ def main():
         "Win_Rate",
         "Risk_Control", 
     ]
-
     vars = {
         "TARGET_PROFILE_NAME": profile_name,
         "TREND_REGIME": trend_regime,
@@ -518,63 +546,124 @@ def main():
         "RISKREWARD_YAML": to_yaml(paper_riskreward),
         "RULEPROVIDERS_YAML": to_yaml(paper_ruleproviders),
     }    
-
     request_prompt = render_template(template_file_path=filename, variables=vars)
 
     # print(request_prompt)
 
-    # api_key = ""
+    api_key = os.getenv("OPENROUTER_APIKEY")
     # # models = ["deepseek/deepseek-r1:free", "deepseek/deepseek-r1-0528", "google/gemma-4-26b-a4b-it:free"]
     # # models = ["google/gemma-4-26b-a4b-it:free"]
-    # models = [
-    #         "openrouter/free",
-    #         "google/gemma-4-26b-it:free",
-    #         "openai/gpt-oss-120b:free",
-    #         "openai/gpt-oss-20b:free",
-    #         ]
-    # response_prompt = generate_openrouter_response(api_key, request_prompt, models)
-    # print(response_prompt)
+    models = [
+        # "liquid/lfm-2.5-embedding-350m:free",
+        "openrouter/free",
+        "nvidia/nemotron-3-ultra-550b-a55b:free",
+        "minimax/minimax-m3:free",
+        "z-ai/glm-5.2:free",
+    ]
+    response_prompt = generate_openrouter_response(api_key, request_prompt, models)
+    print("BEGIN RESPONSE")
+    print(response_prompt)
+    print("END RESPONSE")
 
 
 
-    # ------------------------------------------------------------------
-    # EXAMPLE
-    # ------------------------------------------------------------------
+    # # ------------------------------------------------------------------
+    # # EXAMPLE
+    # # ------------------------------------------------------------------
 
-    config = {
-        "riskRewardProfiles": [
-            {
-                "id": "trend_bull",
-                "ruleEngineVersion": 2,
-                "enabled": True,
-            },
-            {
-                "id": "trend_bear",
-                "ruleEngineVersion": 2,
-                "enabled": True,
-            },
-        ]
-    }
+    # config = {
+    #     "riskRewardProfiles": [
+    #         {
+    #             "id": "trend_bull",
+    #             "ruleEngineVersion": 2,
+    #             "enabled": True,
+    #         },
+    #         {
+    #             "id": "trend_bear",
+    #             "ruleEngineVersion": 2,
+    #             "enabled": True,
+    #         },
+    #     ]
+    # }
 
-    result = merge_yaml_array_item(
-        yaml_data=config,
-        root_path="riskRewardProfiles",
-        operation="update",
-        match_items=[
-            ("id", "trend_bull"),
-            ("ruleEngineVersion", 2),
-        ],
-        data={
-            "enabled": False,
-        },
-    )
+    # result = merge_yaml_array_item(
+    #     yaml_data=config,
+    #     root_element="riskRewardProfiles",
+    #     operation="update",
+    #     filters=[
+    #         {
+    #             "MatchPath": "id",
+    #             "MatchValues": [
+    #                 "trend_bull",
+    #             ],
+    #         },
+    #         {
+    #             "MatchPath": "ruleEngineVersion",
+    #             "MatchValues": [
+    #                 2,
+    #             ],
+    #         },
+    #     ],
+    #     data={
+    #         "enabled": False,
+    #     },
+    # )
+    # print(result) 
 
-    print(result) 
+    mergeResults = True
+    if mergeResults:
+        data = extract_yaml(response_prompt)
+        profiles_adjusted = data.get("Profiles")
+        riskrewards_adjusted = data.get("RiskRewardNotations")
 
-    # data = extract_yaml(response_prompt)
-    # profiles_adjusted = data["Profiles"]
-    # risk_rewards_adjusted = data["RiskRewardNotations"]
-    # TODO Do the merge logic
+        if profiles_adjusted:
+            profiles_new = merge_yaml_array_item(
+                yaml_data=profiles_obj,
+                root_element="Profiles",
+                operation="update",
+                filters=[
+                    {
+                        "MatchPath": "Profile.Name",
+                        "MatchValues": [
+                            profile_name,
+                        ]
+                    }
+                ],
+                data=profiles_adjusted[0],
+            )
+            print(to_yaml(profiles_new)) 
+            # print(to_yaml(profiles_adjusted)) 
+
+        if riskrewards_adjusted:
+            riskrewards_new = merge_yaml_array_item(
+                yaml_data=riskreward_obj,
+                root_element="RiskRewardNotations",
+                operation="update",
+                filters=[
+                    {
+                        "MatchPath": "ProfileName",
+                        "MatchValues": [
+                            profile_name,
+                        ],
+                    },
+                    {
+                        "MatchPath": "TrendRegime",
+                        "MatchValues": [
+                            trend_regime,
+                        ],
+                    },
+                    {
+                        "MatchPath": "VolatilityRegime",
+                        "MatchValues": [
+                            trend_volume,
+                        ],
+                    }
+                ],
+                data=riskrewards_adjusted[0],
+            )
+            print(to_yaml(riskrewards_new)) 
+            # print(to_yaml(riskrewards_adjusted)) 
+
 
 if __name__ == "__main__":
     main()
