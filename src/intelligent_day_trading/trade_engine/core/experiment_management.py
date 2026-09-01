@@ -336,19 +336,31 @@ def render_template(
 
 def generate_openrouter_response(
     api_key: str,
-    prompt: str,
+    user_prompt: str,
     models: list[str],
     temperature: float = 0.2,
     timeout: int = 300,
 ) -> str:
 
     errors = []
+    # Docs: https://openrouter.ai/openrouter/free
 
     for model in models:
 
         try:
 
             print(f"Trying model: {model}")
+
+            system_prompt = """
+            You are a trading strategy optimization engine.
+
+            Return valid YAML only.
+            Return only modified records.
+            Never return markdown.
+            Never return explanations.
+            Never return code fences.
+            Preserve YAML structure.
+            """
 
             response = requests.post(
                 "https://openrouter.ai/api/v1/chat/completions",
@@ -360,8 +372,12 @@ def generate_openrouter_response(
                     "model": model,
                     "messages": [
                         {
+                            "role": "system",
+                            "content": system_prompt,
+                        },
+                        {
                             "role": "user",
-                            "content": prompt,
+                            "content": user_prompt,
                         }
                     ],
                     "temperature": temperature,
@@ -554,11 +570,11 @@ def main():
     # # models = ["deepseek/deepseek-r1:free", "deepseek/deepseek-r1-0528", "google/gemma-4-26b-a4b-it:free"]
     # # models = ["google/gemma-4-26b-a4b-it:free"]
     models = [
-        # "liquid/lfm-2.5-embedding-350m:free",
         "openrouter/free",
-        "nvidia/nemotron-3-ultra-550b-a55b:free",
-        "minimax/minimax-m3:free",
-        "z-ai/glm-5.2:free",
+        # "minimax/minimax-m3:free",
+        # "nvidia/nemotron-3-ultra-550b-a55b:free",
+        # "liquid/lfm-2.5-embedding-350m:free",
+        # "z-ai/glm-5.2:free",
     ]
     response_prompt = generate_openrouter_response(api_key, request_prompt, models)
     print("BEGIN RESPONSE")
@@ -566,49 +582,6 @@ def main():
     print("END RESPONSE")
 
 
-
-    # # ------------------------------------------------------------------
-    # # EXAMPLE
-    # # ------------------------------------------------------------------
-
-    # config = {
-    #     "riskRewardProfiles": [
-    #         {
-    #             "id": "trend_bull",
-    #             "ruleEngineVersion": 2,
-    #             "enabled": True,
-    #         },
-    #         {
-    #             "id": "trend_bear",
-    #             "ruleEngineVersion": 2,
-    #             "enabled": True,
-    #         },
-    #     ]
-    # }
-
-    # result = merge_yaml_array_item(
-    #     yaml_data=config,
-    #     root_element="riskRewardProfiles",
-    #     operation="update",
-    #     filters=[
-    #         {
-    #             "MatchPath": "id",
-    #             "MatchValues": [
-    #                 "trend_bull",
-    #             ],
-    #         },
-    #         {
-    #             "MatchPath": "ruleEngineVersion",
-    #             "MatchValues": [
-    #                 2,
-    #             ],
-    #         },
-    #     ],
-    #     data={
-    #         "enabled": False,
-    #     },
-    # )
-    # print(result) 
 
     mergeResults = True
     if mergeResults:
@@ -663,7 +636,6 @@ def main():
             )
             print(to_yaml(riskrewards_new)) 
             # print(to_yaml(riskrewards_adjusted)) 
-
 
 if __name__ == "__main__":
     main()
