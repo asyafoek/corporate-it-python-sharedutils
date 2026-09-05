@@ -5,7 +5,7 @@
 pip install --force-reinstall git+https://$GITHUB_TOKEN@github.com/asyafoek/corporate-it-python-sharedutils.git@main
 
 ## Use from python
-from corporate_it_python_sharedutils.postgres_utils import get_connection, list_databases
+from shared_utils.postgres_utils import get_connection, list_databases
 import os 
 
 host = os.getenv("DB_HOST")
