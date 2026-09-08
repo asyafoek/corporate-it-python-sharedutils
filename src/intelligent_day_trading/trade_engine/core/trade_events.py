@@ -1,284 +1,590 @@
-from copy import deepcopy
-from datetime import datetime, UTC
+from __future__ import annotations
+
+from datetime import datetime, timezone
+from pprint import pprint
 from uuid import uuid4
+
 import json
+from sqlalchemy import text
+
+class DataFlow:
+
+    DEFAULT_CONTEXT_TABLE = "trade_dataflow_context"
+    DEFAULT_STEP_TABLE = "trade_dataflow_step"
+
+    def __init__(
+        self,
+        context: dict | None = None,
+        external_reference_id: str | None = None,
+        lookup_key: str | None = None,
+        context_table_name: str | None = None,
+        step_table_name: str | None = None,
+    ):
+
+        self.external_reference_id = (
+            external_reference_id or str(uuid4())
+        )
+
+        self.lookup_key = lookup_key
+
+        self.context_table_name = (
+            context_table_name
+            or self.DEFAULT_CONTEXT_TABLE
+        )
+
+        self.step_table_name = (
+            step_table_name
+            or self.DEFAULT_STEP_TABLE
+        )
+
+        self.status = "NEW"
+
+        self.start_timestamp = datetime.now(timezone.utc)
+        self.finish_timestamp = None
+
+        self.context = context or {}
+
+        self.steps = []
+
+    def set_context(self, context: dict | None) -> None:
+        self.context = context or {}
+
+    def get_context(self) -> dict:
+        return self.context
+
+    @property
+    def lookup_key(self) -> str | None:
+        return self._lookup_key
+
+    @lookup_key.setter
+    def lookup_key(self, value: str | None):
+
+        if value is None:
+            self._lookup_key = None
+            return
+
+        self._lookup_key = str(value).strip()
+
+    def add_step(
+        self,
+        step_name: str,
+        payload: dict,
+        timestamp: datetime | None = None,
+    ):
+
+        event_timestamp = (
+            timestamp
+            if timestamp is not None
+            else datetime.now(timezone.utc)
+        )
+
+        self.steps.append(
+            {
+                "step_name": step_name,
+                "event_timestamp": event_timestamp,
+                "payload": payload,
+            }
+        )
+
+        if self.status not in ("SUCCESS", "FAILED"):
+            self.status = "IN_PROGRESS"
+
+    @property
+    def first_step(self):
+
+        if not self.steps:
+            return None
+
+        return self.steps[0]
+
+    @property
+    def last_step(self):
+
+        return self.steps[-1] if self.steps else None
+
+    def success(self):
+
+        self.status = "SUCCESS"
+        self.finish_timestamp = datetime.now(timezone.utc)
+
+    def failed(self):
+
+        self.status = "FAILED"
+        self.finish_timestamp = datetime.now(timezone.utc)
+
+    def pause(self):
+
+        self.status = "PAUSED"
+
+    def resume(self):
+
+        self.status = "IN_PROGRESS"
 
 
-class TradeFlowBuilder:
+    @property
+    def is_finished(self):
 
-    @staticmethod
-    def now():
-        return datetime.now(UTC).isoformat()
+        return self.finish_timestamp is not None
 
-    @staticmethod
-    def initialize(
-        market_data: dict,
-        market: str,
-        trading_mode: str
-    ) -> dict:
+    @property
+    def total_steps(self):
 
-        trade = deepcopy(market_data)
+        return len(self.steps)
 
-        trade["market"] = market
-        trade["trading_mode"] = trading_mode
+    def print(self):
 
-        return trade
+        print("\n" + "=" * 120)
+        print("DATAFLOW")
+        print("=" * 120)
 
-    @staticmethod
-    def add_context(
-        trade: dict,
-        run_id: str,
-        trading_horizon: str,
-        market_regime: str,
-        profile_identity: str,
-        profile_name: str,
-        side: str,
-        rule_engine_version: int = 1
-    ) -> dict:
+        print(f"external_reference_id : {self.external_reference_id}")
+        print(f"lookup_key : {self.lookup_key}")
+        print(f"status                : {self.status}")
+        print(f"start_timestamp        : {self.start_timestamp}")
+        print(f"finish_timestamp       : {self.finish_timestamp}")
 
-        trade["dataflow"] = {
-            "context": {
-                "run_id": run_id,
-                "external_reference_id": str(uuid4()),
-                "trading_horizon": trading_horizon,
-                "market_regime": market_regime,
-                "profile": {
-                    "profile_identity": profile_identity,
-                    "profile_name": profile_name,
-                    "rule_engine_version": rule_engine_version,
-                    "side": side
+        print("\nCONTEXT")
+        print("-" * 120)
+        pprint(self.context)
+
+        print("\nSTEPS")
+        print("-" * 120)
+
+        for i, step in enumerate(self.steps, start=1):
+
+            print(f"\nSTEP {i}")
+            print(
+                f"{step['event_timestamp']} "
+                f"- {step['step_name']}"
+            )
+
+            pprint(step["payload"])
+
+    def to_dict(self):
+
+        return {
+            "external_reference_id": self.external_reference_id,
+            "lookup_key": self.lookup_key,
+            "status": self.status,
+            "start_timestamp": self.start_timestamp.isoformat(),
+            "finish_timestamp": (
+                self.finish_timestamp.isoformat()
+                if self.finish_timestamp
+                else None
+            ),
+            "context": self.context,
+            "steps": [
+                {
+                    "step_name": step["step_name"],
+                    "event_timestamp": (
+                        step["event_timestamp"].isoformat()
+                    ),
+                    "payload": step["payload"],
                 }
-            },
-            "steps": []
+                for step in self.steps
+            ],
         }
 
-        return trade
 
-    @staticmethod
-    def add_step(
-        trade: dict,
-        name: str,
-        payload: dict,
-        timestamp: str | None = None
-    ) -> dict:
 
-        trade["dataflow"]["steps"].append({
-            "name": name,
-            "timestamp": timestamp or TradeFlowBuilder.now(),
-            "payload": payload
-        })
+    def save(self, engine):
 
-        return trade
+        with engine.begin() as conn:
 
-    @staticmethod
-    def add_opportunity_detected(
-        trade: dict,
-        opportunity_detected: bool,
-        added_in_cache: str
-    ) -> dict:
+            # context record
 
-        return TradeFlowBuilder.add_step(
-            trade=trade,
-            name="opportunity_detected",
-            payload={
-                "opportunity": {
-                    "opportunity_detected": opportunity_detected,
-                    "added_in_cache": added_in_cache
-                }
-            }
-        )
-
-    @staticmethod
-    def add_signal_evaluated(
-        trade: dict,
-        action: str,
-        percentage: float,
-        provider_count_configured: int,
-        provider_count_evaluated: int,
-        providers_evaluated_json: dict,
-        providers_not_evaluated_json: dict,
-        cache_history: list
-    ) -> dict:
-
-        return TradeFlowBuilder.add_step(
-            trade=trade,
-            name="signal_evaluated",
-            payload={
-                "signal": {
-                    "action": action,
-                    "percentage": percentage,
-                    "provider_count_configured": provider_count_configured,
-                    "provider_count_evaluated": provider_count_evaluated,
-                    "providers_evaluated_json": providers_evaluated_json,
-                    "providers_not_evaluated_json": providers_not_evaluated_json
+            conn.execute(
+                text(
+                    f"""
+                    INSERT INTO {self.context_table_name}
+                    (
+                        external_reference_id,
+                        lookup_key,
+                        status,
+                        start_timestamp,
+                        finish_timestamp,
+                        context_json
+                    )
+                    VALUES
+                    (
+                        :external_reference_id,
+                        :lookup_key,
+                        :status,
+                        :start_timestamp,
+                        :finish_timestamp,
+                        CAST(:context_json AS JSONB)
+                    )
+                    ON CONFLICT (external_reference_id)
+                    DO UPDATE
+                    SET
+                        lookup_key = EXCLUDED.lookup_key,
+                        status = EXCLUDED.status,
+                        finish_timestamp = EXCLUDED.finish_timestamp,
+                        context_json = EXCLUDED.context_json
+                    """
+                ),
+                {
+                    "external_reference_id": self.external_reference_id,
+                    "lookup_key": self.lookup_key,
+                    "status": self.status,
+                    "start_timestamp": self.start_timestamp,
+                    "finish_timestamp": self.finish_timestamp,
+                    "context_json": json.dumps(self.context),
                 },
-                "cache_history": cache_history
-            }
-        )
+            )
+
+            # alle steps opnieuw schrijven
+
+            conn.execute(
+                text(
+                    f"""
+                    DELETE
+                    FROM {self.step_table_name}
+                    WHERE external_reference_id =
+                        :external_reference_id
+                    """
+                ),
+                {
+                    "external_reference_id": self.external_reference_id,
+                },
+            )
+
+            for step in self.steps:
+
+                conn.execute(
+                    text(
+                        f"""
+                        INSERT INTO {self.step_table_name}
+                        (
+                            external_reference_id,
+                            step_name,
+                            event_timestamp,
+                            payload_json
+                        )
+                        VALUES
+                        (
+                            :external_reference_id,
+                            :step_name,
+                            :event_timestamp,
+                            CAST(:payload_json AS JSONB)
+                        )
+                        """
+                    ),
+                    {
+                        "external_reference_id":
+                            self.external_reference_id,
+                        "step_name":
+                            step["step_name"],
+                        "event_timestamp":
+                            step["event_timestamp"],
+                        "payload_json":
+                            json.dumps(step["payload"]),
+                    },
+                )
 
     @staticmethod
-    def add_risk_assessed(
-        trade: dict,
-        assessment: dict
-    ) -> dict:
+    def load(
+        engine,
+        external_reference_id: str | None = None,
+        lookup_key: str | None = None,
+        status: str | None = None,
+        context_table_name: str = "trade_dataflow_context",
+        step_table_name: str = "trade_dataflow_step",
+    ):
 
-        return TradeFlowBuilder.add_step(
-            trade=trade,
-            name="risk_assessed",
-            payload={
-                "assessment": assessment
+        if external_reference_id is not None:
+
+            sql = f"""
+            SELECT *
+            FROM {context_table_name}
+            WHERE external_reference_id = :external_reference_id
+            LIMIT 1
+            """
+
+            params = {
+                "external_reference_id": external_reference_id
             }
-        )
 
-    @staticmethod
-    def add_trade_open(
-        trade: dict,
-        order: dict,
-        open_positions: list
-    ) -> dict:
+        elif lookup_key is not None:
 
-        return TradeFlowBuilder.add_step(
-            trade=trade,
-            name="trade_open",
-            payload={
-                "order": order,
-                "open_positions": open_positions
+            sql = f"""
+            SELECT *
+            FROM {context_table_name}
+            WHERE lookup_key = :lookup_key
+            """
+
+            params = {
+                "lookup_key": lookup_key
             }
-        )
 
-    @staticmethod
-    def add_position_open(
-        trade: dict,
-        position: dict
-    ) -> dict:
+            if status is not None:
 
-        return TradeFlowBuilder.add_step(
-            trade=trade,
-            name="position_open",
-            payload={
-                "position": position
-            }
-        )
+                sql += """
+                AND status = :status
+                """
 
-    @staticmethod
-    def add_trade_close(
-        trade: dict,
-        order: dict,
-        open_positions: list
-    ) -> dict:
+                params["status"] = status
 
-        return TradeFlowBuilder.add_step(
-            trade=trade,
-            name="trade_close",
-            payload={
-                "order": order,
-                "open_positions": open_positions
-            }
-        )
+            sql += """
+            ORDER BY start_timestamp DESC
+            LIMIT 1
+            """
 
-    @staticmethod
-    def add_position_close(
-        trade: dict,
-        position: dict
-    ) -> dict:
+        else:
 
-        return TradeFlowBuilder.add_step(
-            trade=trade,
-            name="position_close",
-            payload={
-                "position": position
-            }
-        )
+            raise ValueError(
+                "external_reference_id or lookup_key required"
+            )
 
-    @staticmethod
-    def add_trade_result(
-        trade: dict,
-        result: dict,
-        open_positions: list
-    ) -> dict:
+        with engine.connect() as conn:
 
-        return TradeFlowBuilder.add_step(
-            trade=trade,
-            name="trade_result",
-            payload={
-                "trade": result,
-                "open_positions": open_positions
-            }
-        )
+            # context laden
+
+            row = conn.execute(
+                text(sql),
+                params,
+            ).mappings().first()
+
+            if row is None:
+                return None
+
+            flow = DataFlow(
+                context=row["context_json"],
+                external_reference_id=row["external_reference_id"],
+                lookup_key=row["lookup_key"],
+                context_table_name=context_table_name,
+                step_table_name=step_table_name,
+            )
+
+            # status herstellen
+
+            flow.status = row["status"]
+            flow.start_timestamp = row["start_timestamp"]
+            flow.finish_timestamp = row["finish_timestamp"]
+
+            # steps laden
+
+            step_rows = conn.execute(
+                text(
+                    f"""
+                    SELECT
+                        step_name,
+                        event_timestamp,
+                        payload_json
+                    FROM {step_table_name}
+                    WHERE external_reference_id =
+                        :external_reference_id
+                    ORDER BY event_timestamp
+                    """
+                ),
+                {
+                    "external_reference_id":
+                        flow.external_reference_id
+                },
+            ).mappings().all()
+
+            for step_row in step_rows:
+
+                flow.steps.append(
+                    {
+                        "step_name":
+                            step_row["step_name"],
+
+                        "event_timestamp":
+                            step_row["event_timestamp"],
+
+                        "payload":
+                            step_row["payload_json"],
+                    }
+                )
+
+
+            return flow
 
 def main():
-    market_data = {
-        "ticker": "NVDA",
-        "t": "2026-08-25T10:15:00Z",
-        "open": 181.10,
-        "high": 181.35,
-        "low": 180.95,
-        "close": 181.25,
-        "volume": 1250000,
-        "vwap": 181.18
-    }
 
-    trade = TradeFlowBuilder.initialize(
-        market_data=market_data,
-        market="Stocks",
-        trading_mode="Live"
-    )
-
-    print("BEGIN")
-    print(json.dumps(trade, indent=4))
-
-    trade = TradeFlowBuilder.add_context(
-        trade=trade,
-        run_id="Paper_20260825",
-        trading_horizon="Swing",
-        market_regime="BULLISH_VOLATILE",
-        profile_identity="1",
-        profile_name="asyafoek-stocks-long-swing-paper",
-        side="Long"
-    )
-
-    trade = TradeFlowBuilder.add_opportunity_detected(
-        trade=trade,
-        opportunity_detected=True,
-        added_in_cache="20260826T07:32:42+02:00"
-    )
-
-    trade = TradeFlowBuilder.add_signal_evaluated(
-        trade=trade,
-        action="Buy",
-        percentage=75,
-        provider_count_configured=12,
-        provider_count_evaluated=8,
-        providers_evaluated_json={},
-        providers_not_evaluated_json={},
-        cache_history=[]
-    )
-
-    trade = TradeFlowBuilder.add_risk_assessed(
-        trade=trade,
-        assessment={
-            "decision": "Accepted",
-            "position_sizing": "KellyCriterion",
-            "risk_modal": "ATR",
-            "risk_reward_ratio": 1.5
+    flow = DataFlow(
+        context={
+            "broker_id": "Alpaca",
+            "market": "NASDAQ",
+            "account_id": "1",
+            "trading_mode": "Paper",
+            "symbol": "AAPL",
+            "strategy": "Swing",
+            "timeframe": "15m",
+            "regime": "BULLISH_VOLATILE",
         }
     )
 
-    trade = TradeFlowBuilder.add_trade_open(
-        trade=trade,
-        order={
-            "broker": "Alpaca",
-            "action": "Buy",
-            "requested_size": 6,
-            "requested_price": 181.25,
-            "status": "Accepted"
-        },
-        open_positions=[]
+    flow = DataFlow()
+    flow.set_context(
+                context={
+            "broker_id": "Alpaca",
+            "market": "NASDAQ",
+            "account_id": "1",
+            "trading_mode": "Paper",
+            "symbol": "AAPL",
+            "strategy": "Swing",
+            "timeframe": "15m",
+            "regime": "BULLISH_VOLATILE",
+        }
     )
 
-    print()
-    print("END")
-    print(json.dumps(trade, indent=4))    
+    flow.add_step(
+        "bar_received",
+        {
+            "ticker": "NVDA",
+            "t": "2026-08-25T10:15:00Z",
+            
+            "open": 181.10,
+            "high": 181.35,
+            "low": 180.95,
+            "close": 181.25,
+        
+            "volume": 1250000,
+            "vwap": 181.18,
+        
+            "market": "Stocks",
+            "trading_mode": "Live"
+        },
+    )
+
+    flow.add_step(
+        "opportunity_detected",
+        {
+            "opportunity_detected": True,
+            "added_in_cache": "20260826T07:32:42+02:00"
+        },
+    )
+
+
+    flow.add_step(
+        "bars_enriched",
+        {
+            "signal_window": [
+                {"o": 181.10, "h": 181.35,  "l": 180.95, "c": 181.25, "v": 1250000, "vw": 181.18, "t": 12345789012345, "sma20": 180.91, "ema20": 181.02, "rsi14": 63.42, "macd": 1.23, "macd_signal": 1.1}
+            ]
+        },
+    )
+
+    flow.add_step(
+        "signal_evaluated",
+        {
+            "action": "Buy",
+            "percentage": 75,
+            "provider_count_configured": 12,
+            "provider_count_evaluated": 8,
+            "providers_evaluated": ["trend","reversal"],
+            "providers_not_evaluated": ["news"]
+        },
+    )
+
+    flow.add_step(
+        "risk_assessed",
+        {
+            "decision": "Accepted",
+            "reason": None,
+            "position_sizing": "KellyCriterion",
+            "risk_modal": "ATR",
+            "risk_reward_notation": "1:1.5",
+            "risk_reward_ratio": 1.5,
+            "minimum_holding_periode": "20260826T08:20:16+02:00",
+            "maximum_holding_periode": "20260826T09:20:16+02:00"
+        },
+    )
+
+    flow.add_step(
+        "trade_open",
+        {
+            "secrets": "alpaca-paper-credentials",
+            "client_order_id": "550e8400-e29b-41d4-a716-446655440000",
+            "order_id": "XSFWR##444444",
+            "broker": "Alpaca",
+            "action": "Buy",
+            "ticker": "NVDA",
+            "requested_size": 6,
+            "requested_price": 181.25,
+            "stop_loss": 180.95,
+            "take_profit": 181.25,
+            "spread": 0.04,
+            "status": "Accepted",
+            "expiration_timestamp": "20260826T21:20:16+02:00"
+        },
+    )
+
+    flow.add_step(
+        "position_open",
+        {
+            "secrets": "alpaca-paper-credentials",
+            "broker": "Alpaca",
+            "action": "Buy",
+            "ticker": "NVDA",
+            "fill_size": 6,
+            "fill_price": 181.25,
+            "fees": 0.20,
+            "timestamp": "20260826T08:03:54.321+02:00"
+        },
+    )
+
+    flow.add_step(
+        "trade_close",
+        {
+            "secrets": "alpaca-paper-credentials",
+            "client_order_id": "550e8400-e29b-41d4-a716-446655440000",
+            "order_id": "XSFWR##444444",
+            "broker": "Alpaca",
+            "action": "Sell",
+            "ticker": "NVDA",
+            "requested_size": 6,
+            "requested_price": 181.25,
+            "status": "Accepted",
+            "expiration_timestamp": "20260826T21:20:16+02:00"
+        },
+    )
+
+    flow.add_step(
+        "position_close",
+        {
+            "secrets": "alpaca-paper-credentials",
+            "broker": "Alpaca",
+            "action": "Sell",
+            "ticker": "NVDA",
+            "exit_size": 6,
+            "exit_price": 181.25,
+            "fees": 0.20,
+            "timestamp": "20260826T08:03:54.321+02:00"
+        },
+    )
+
+    flow.add_step(
+        "trade_result",
+        {
+            "gross_profit": 31.50,
+            "net_profit": 29.00,
+            "entry_price": 181.25,
+            "exit_price": 230.25,
+            "entry_size": 6,
+            "exit_size": 6,
+            "return_pct": 2.65,
+            "exit_reason": "Exit Signal",
+            "holding_minutes": 3.6,
+            "realized_risk_reward_ratio": 1.5,
+            "winner": True
+        },
+    )
+
+    flow.success()
+
+    # flow.print()
+
+    print("\nAS DICT")
+    pprint(flow.to_dict())
+
+    print("\nFirst Step")
+    print(flow.first_step)
+
+    print("\nLast Step")
+    print(flow.last_step)
 
 if __name__ == "__main__":
     main()
