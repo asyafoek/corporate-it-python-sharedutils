@@ -23,10 +23,29 @@
                 "profile_identity": "1",
                 "profile_name": "asyafoek-stocks-long-swing-paper",
                 "rule_engine_version": 1,
-                "side": "Long",
+                "side": "Long"
             }
         },
         "steps": [
+            {
+                "name": "bar_received",
+                "timestamp": "20260826T08:02:43+02:00",
+                "payload": {
+                    "ticker": "NVDA",
+                    "t": "2026-08-25T10:15:00Z",
+                    
+                    "open": 181.10,
+                    "high": 181.35,
+                    "low": 180.95,
+                    "close": 181.25,
+                
+                    "volume": 1250000,
+                    "vwap": 181.18,
+                
+                    "market": "Stocks",
+                    "trading_mode": "Live"
+                }
+            },
             {
                 "name": "opportunity_detected",
                 "timestamp": "20260826T08:02:43+02:00",
@@ -38,7 +57,16 @@
                 }
             },
             {
-                "name": "signal_evalutated",
+                "name": "bars_enriched",
+                "timestamp": "20260826T08:02:44+02:00",
+                "payload": {
+                    "signal_window": [
+                        {"o": 181.10, "h": 181.35,  "l": 180.95, "c": 181.25, "v": 1250000, "vw": 181.18, "t": 12345789012345, "sma20": 180.91, "ema20": 181.02, "rsi14": 63.42, "macd": 1.23, "macd_signal": 1.1}
+                    ]
+                }
+            },        
+            {
+                "name": "signal_evaluated",
                 "timestamp": "20260826T08:02:44+02:00",
                 "payload": {
                     "signal": {
@@ -46,10 +74,9 @@
                         "percentage": 75,
                         "provider_count_configured": 12,
                         "provider_count_evaluated": 8,
-                        "providers_evaluated_json": {},
-                        "providers_not_evaluated_json": {}
-                    },
-                    "cache_history": []
+                        "providers_evaluated": ["trend","reversal"],
+                        "providers_not_evaluated": ["news"]
+                    }
                 }
             },
             {
@@ -96,8 +123,6 @@
                 "payload": {
                     "position": {
                         "secrets": "alpaca-paper-credentials",
-                        "client_order_id": "550e8400-e29b-41d4-a716-446655440000",
-                        "order_id": "XSFWR##444444",
                         "broker": "Alpaca",
                         "action": "Buy",
                         "ticker": "NVDA",
@@ -133,8 +158,6 @@
                 "payload": {
                     "position": {
                         "secrets": "alpaca-paper-credentials",
-                        "client_order_id": "550e8400-e29b-41d4-a716-446655440000",
-                        "order_id": "XSFWR##444444",
                         "broker": "Alpaca",
                         "action": "Sell",
                         "ticker": "NVDA",
@@ -152,6 +175,10 @@
                     "trade": {
                         "gross_profit": 31.50,
                         "net_profit": 29.00,
+                        "entry_price": 6,
+                        "exit_price": 6,
+                        "entry_size": 6,
+                        "exit_size": 6,
                         "return_pct": 2.65,
                         "exit_reason": "Exit Signal",
                         "holding_minutes": 3.6,
