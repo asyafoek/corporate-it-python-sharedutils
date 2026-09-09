@@ -43,7 +43,6 @@ class DataFlow:
         self.start_timestamp = datetime.now(timezone.utc)
         self.finish_timestamp = None
         self._retention = None
-        self.expiration_timestamp = None
 
         self.context = context or {}
 
@@ -170,18 +169,30 @@ class DataFlow:
         return self._retention
 
     @retention.setter
-    def retention(self, value: str | None):
+    def retention(
+        self,
+        value: str | None,
+    ):
 
         if value is None:
             self._retention = None
-            self.expiration_timestamp = None
             return
 
         self._retention = str(value).strip()
 
-        self.expiration_timestamp = (
-            self.start_timestamp +
-            self._retention_to_timedelta(self._retention)
+    @property
+    def expiration_timestamp(
+        self,
+    ) -> datetime | None:
+
+        if self.retention is None:
+            return None
+
+        return (
+            self.start_timestamp
+            + self._retention_to_timedelta(
+                self.retention
+            )
         )
 
     @property
@@ -316,6 +327,8 @@ class DataFlow:
                         status,
                         start_timestamp,
                         finish_timestamp,
+                        retention,
+                        expiration_timestamp,
                         context_json
                     )
                     VALUES
@@ -325,6 +338,8 @@ class DataFlow:
                         :status,
                         :start_timestamp,
                         :finish_timestamp,
+                        :retention,
+                        :expiration_timestamp,
                         CAST(:context_json AS JSONB)
                     )
                     ON CONFLICT (external_reference_id)
@@ -333,16 +348,28 @@ class DataFlow:
                         lookup_key = EXCLUDED.lookup_key,
                         status = EXCLUDED.status,
                         finish_timestamp = EXCLUDED.finish_timestamp,
+                        retention = EXCLUDED.retention,
+                        expiration_timestamp = EXCLUDED.expiration_timestamp,
                         context_json = EXCLUDED.context_json
                     """
                 ),
                 {
-                    "external_reference_id": self.external_reference_id,
-                    "lookup_key": self.lookup_key,
-                    "status": self.status,
-                    "start_timestamp": self.start_timestamp,
-                    "finish_timestamp": self.finish_timestamp,
-                    "context_json": json.dumps(self.context),
+                    "external_reference_id":
+                        self.external_reference_id,
+                    "lookup_key":
+                        self.lookup_key,
+                    "status":
+                        self.status,
+                    "start_timestamp":
+                        self.start_timestamp,
+                    "finish_timestamp":
+                        self.finish_timestamp,
+                    "retention":
+                        self.retention,
+                    "expiration_timestamp":
+                        self.expiration_timestamp,
+                    "context_json":
+                        json.dumps(self.context),
                 },
             )
 
@@ -358,7 +385,8 @@ class DataFlow:
                     """
                 ),
                 {
-                    "external_reference_id": self.external_reference_id,
+                    "external_reference_id":
+                        self.external_reference_id,
                 },
             )
 
@@ -394,6 +422,8 @@ class DataFlow:
                             json.dumps(step["payload"]),
                     },
                 )
+
+
     @classmethod
     def load_from_backingstore(
         cls,
@@ -415,7 +445,8 @@ class DataFlow:
             """
 
             params = {
-                "external_reference_id": external_reference_id
+                "external_reference_id":
+                    external_reference_id
             }
 
         elif lookup_key is not None:
@@ -427,7 +458,8 @@ class DataFlow:
             """
 
             params = {
-                "lookup_key": lookup_key
+                "lookup_key":
+                    lookup_key
             }
 
             if status is not None:
@@ -461,7 +493,7 @@ class DataFlow:
             if row is None:
                 return None
 
-            flow = DataFlow(
+            flow = cls(
                 context=row["context_json"],
                 external_reference_id=row["external_reference_id"],
                 lookup_key=row["lookup_key"],
@@ -474,6 +506,10 @@ class DataFlow:
             flow.status = row["status"]
             flow.start_timestamp = row["start_timestamp"]
             flow.finish_timestamp = row["finish_timestamp"]
+
+            # retention / expiry herstellen
+
+            flow.retention = row["retention"]
 
             # steps laden
 
@@ -510,7 +546,6 @@ class DataFlow:
                             step_row["payload_json"],
                     }
                 )
-
 
             return flow
 
