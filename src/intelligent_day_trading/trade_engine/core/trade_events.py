@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from datetime import timedelta
 from pprint import pprint
 from uuid import uuid4
 
@@ -41,6 +42,8 @@ class DataFlow:
 
         self.start_timestamp = datetime.now(timezone.utc)
         self.finish_timestamp = None
+        self._retention = None
+        self.expiration_timestamp = None
 
         self.context = context or {}
 
@@ -126,6 +129,61 @@ class DataFlow:
 
         return self.finish_timestamp is not None
 
+    def _retention_to_timedelta(
+        self,
+        retention: str,
+    ) -> timedelta:
+
+        retention = retention.strip().lower()
+
+        if retention.endswith("ms"):
+            return timedelta(
+                milliseconds=int(retention[:-2])
+            )
+
+        if retention.endswith("s"):
+            return timedelta(
+                seconds=int(retention[:-1])
+            )
+
+        if retention.endswith("m"):
+            return timedelta(
+                minutes=int(retention[:-1])
+            )
+
+        if retention.endswith("h"):
+            return timedelta(
+                hours=int(retention[:-1])
+            )
+
+        if retention.endswith("d"):
+            return timedelta(
+                days=int(retention[:-1])
+            )
+
+        raise ValueError(
+            f"Unsupported retention value: {retention}"
+        )
+
+    @property
+    def retention(self) -> str | None:
+        return self._retention
+
+    @retention.setter
+    def retention(self, value: str | None):
+
+        if value is None:
+            self._retention = None
+            self.expiration_timestamp = None
+            return
+
+        self._retention = str(value).strip()
+
+        self.expiration_timestamp = (
+            self.start_timestamp +
+            self._retention_to_timedelta(self._retention)
+        )
+
     @property
     def total_steps(self):
 
@@ -172,6 +230,12 @@ class DataFlow:
                 if self.finish_timestamp
                 else None
             ),
+            "retention": self.retention,
+            "expiration_timestamp": (
+                self.expiration_timestamp.isoformat()
+                if self.expiration_timestamp
+                else None
+            ),            
             "context": self.context,
             "steps": [
                 {
@@ -185,9 +249,58 @@ class DataFlow:
             ],
         }
 
+    @classmethod
+    def from_dict(cls, data: dict) -> "DataFlow":
+
+        flow = cls(
+            context=data.get("context"),
+            external_reference_id=data.get(
+                "external_reference_id"
+            ),
+            lookup_key=data.get("lookup_key"),
+        )
+
+        flow.status = data.get("status", "NEW")
+
+        flow.start_timestamp = datetime.fromisoformat(
+            data["start_timestamp"]
+        )
+
+        flow.finish_timestamp = (
+            datetime.fromisoformat(data["finish_timestamp"])
+            if data.get("finish_timestamp")
+            else None
+        )
+
+        flow.retention = data.get("retention")
+
+        flow.steps = [
+            {
+                "step_name": step["step_name"],
+                "event_timestamp": datetime.fromisoformat(
+                    step["event_timestamp"]
+                ),
+                "payload": step["payload"],
+            }
+            for step in data.get("steps", [])
+        ]
+
+        return flow
 
 
-    def save(self, engine):
+    def to_json(self) -> str:
+        return json.dumps( self.to_dict(), indent=4)
+
+
+    @classmethod
+    def from_json(
+        cls,
+        text: str,
+    ) -> "DataFlow":
+        return cls.from_dict(json.loads(text))
+
+
+    def save_to_backingstore(self, engine):
 
         with engine.begin() as conn:
 
@@ -281,9 +394,9 @@ class DataFlow:
                             json.dumps(step["payload"]),
                     },
                 )
-
-    @staticmethod
-    def load(
+    @classmethod
+    def load_from_backingstore(
+        cls,
         engine,
         external_reference_id: str | None = None,
         lookup_key: str | None = None,
@@ -575,6 +688,7 @@ def main():
 
     flow.success()
 
+    flow.retention = "4h"
     # flow.print()
 
     print("\nAS DICT")
@@ -585,6 +699,15 @@ def main():
 
     print("\nLast Step")
     print(flow.last_step)
+
+    print("\nAS Json")
+    json_text1 = flow.to_json()
+    flow.from_json(json_text1)
+    json_text2 = flow.to_json()
+
+    print(json_text1==json_text2)
+    
+    print(json_text2)
 
 if __name__ == "__main__":
     main()
