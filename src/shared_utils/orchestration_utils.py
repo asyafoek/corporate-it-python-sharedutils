@@ -539,7 +539,7 @@ class DataFlow:
                     },
                 )
 
-        print("inserted")
+        print("inserted or updated")
 
     @classmethod
     def from_backingstore(
@@ -660,14 +660,27 @@ class DataFlow:
             return flow
 
 def main():
+    # market_data = "Massive"
+    # broker_name = "Alpaca"
+    # market = "Stocks"
+    # symbol = "AAPL"
+
+    market_data = "Massive"
+    broker_name = "OKX"
+    market = "Crypto"
+    symbol = "X:BTC-USD"
+
+    lookup_key = f"{market}|{market_data}|{symbol}|Long"
+    search_key = f"{market}|{market_data}|{symbol}"
+    status = "IN_PROGRESS"
 
     flow = DataFlow(
         context={
-            "broker_id": "Alpaca",
-            "market": "NASDAQ",
+            "broker_id": f"{broker_name}",
+            "market": f"{market}",
             "account_id": "1",
             "trading_mode": "Paper",
-            "symbol": "AAPL",
+            "symbol": f"{symbol}",
             "strategy": "Swing",
             "timeframe": "15m",
             "regime": "BULLISH_VOLATILE",
@@ -677,11 +690,11 @@ def main():
     flow = DataFlow()
     flow.set_context(
                 context={
-            "broker_id": "Alpaca",
-            "market": "NASDAQ",
+            "broker_id": f"{broker_name}",
+            "market": f"{market}",
             "account_id": "1",
             "trading_mode": "Paper",
-            "symbol": "AAPL",
+            "symbol": f"{symbol}",
             "strategy": "Swing",
             "timeframe": "15m",
             "regime": "BULLISH_VOLATILE",
@@ -691,7 +704,7 @@ def main():
     flow.add_step(
         "bar_received",
         {
-            "ticker": "NVDA",
+            "ticker": f"{symbol}",
             "t": "2026-08-25T10:15:00Z",
             
             "open": 181.10,
@@ -702,7 +715,7 @@ def main():
             "volume": 1250000,
             "vwap": 181.18,
         
-            "market": "Stocks",
+            "market": f"{market}",
             "trading_mode": "Live"
         },
     )
@@ -757,9 +770,9 @@ def main():
             "secrets": "alpaca-paper-credentials",
             "client_order_id": "550e8400-e29b-41d4-a716-446655440000",
             "order_id": "XSFWR##444444",
-            "broker": "Alpaca",
+            "broker": f"{broker_name}",
             "action": "Buy",
-            "ticker": "NVDA",
+            "ticker": f"{symbol}",
             "requested_size": 6,
             "requested_price": 181.25,
             "stop_loss": 180.95,
@@ -773,10 +786,10 @@ def main():
     flow.add_step(
         "position_open",
         {
-            "secrets": "alpaca-paper-credentials",
-            "broker": "Alpaca",
+            "secrets": f"{broker_name.lower()}-paper-credentials",
+            "broker": f"{broker_name}",
             "action": "Buy",
-            "ticker": "NVDA",
+            "ticker": f"{symbol}",
             "fill_size": 6,
             "fill_price": 181.25,
             "fees": 0.20,
@@ -787,12 +800,12 @@ def main():
     flow.add_step(
         "trade_close",
         {
-            "secrets": "alpaca-paper-credentials",
+            "secrets": f"{broker_name.lower()}-paper-credentials",
             "client_order_id": "550e8400-e29b-41d4-a716-446655440000",
             "order_id": "XSFWR##444444",
-            "broker": "Alpaca",
+            "broker": f"{broker_name}",
             "action": "Sell",
-            "ticker": "NVDA",
+            "ticker": f"{symbol}",
             "requested_size": 6,
             "requested_price": 181.25,
             "status": "Accepted",
@@ -803,10 +816,10 @@ def main():
     flow.add_step(
         "position_close",
         {
-            "secrets": "alpaca-paper-credentials",
-            "broker": "Alpaca",
+            "secrets": f"{broker_name.lower()}-paper-credentials",
+            "broker": f"{broker_name}",
             "action": "Sell",
-            "ticker": "NVDA",
+            "ticker": f"{symbol}",
             "exit_size": 6,
             "exit_price": 181.25,
             "fees": 0.20,
@@ -854,9 +867,6 @@ def main():
     
     print(json_text2)
 
-    lookup_key = "Crypto|Massive|BTC|Long"
-    search_key = "Crypto|Massive|BTC"
-
     print(f"Search {search_key}")
     flow.lookup_key = lookup_key
 
@@ -875,14 +885,15 @@ def main():
     # flow = flow.from_backingstore(engine, external_reference_id="3923c671-6a17-4b6c-9fc8-cf91c1d6c2a7")
     # flow.from_backingstore(engine, external_reference_id="58c89484-8140-45b7-a85e-0f9623955d04")
 
-    status = "IN_PROGRESS"
     # status = "COMPLETED"
     # status = "SUCCESS"
     flow_persited = DataFlow.from_backingstore(engine, lookup_key=search_key, status=status)
     if flow_persited:
         flow = flow_persited
+        flow.success()
         print(f"Dataflow found search_key={search_key} and status={status}")
         print(flow.to_json())
+        flow.to_backingstore(engine)
     else:
         print(f"No dataflow found with lookup_key={lookup_key} and status={status}")
         flow.resume()
