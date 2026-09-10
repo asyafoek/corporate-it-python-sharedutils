@@ -572,12 +572,12 @@ class DataFlow:
             sql = f"""
             SELECT *
             FROM {schema_name}.{context_table_name}
-            WHERE lookup_key = :lookup_key
+            WHERE lookup_key LIKE :lookup_key
             """
 
             params = {
                 "lookup_key":
-                    lookup_key
+                    f"{lookup_key}%"
             }
 
             if status is not None:
@@ -855,7 +855,9 @@ def main():
     print(json_text2)
 
     lookup_key = "Crypto|Massive|BTC|Long"
+    search_key = "Crypto|Massive|BTC"
 
+    print(f"Search {search_key}")
     flow.lookup_key = lookup_key
 
     from postgres_utils import get_default_engine
@@ -873,14 +875,18 @@ def main():
     # flow = flow.from_backingstore(engine, external_reference_id="3923c671-6a17-4b6c-9fc8-cf91c1d6c2a7")
     # flow.from_backingstore(engine, external_reference_id="58c89484-8140-45b7-a85e-0f9623955d04")
 
-    # status = "IN_PROGRESS"
+    status = "IN_PROGRESS"
     # status = "COMPLETED"
-    status = "SUCCESS"
-    flow = DataFlow.from_backingstore(engine, lookup_key=lookup_key, status=status)
-    if flow:
+    # status = "SUCCESS"
+    flow_persited = DataFlow.from_backingstore(engine, lookup_key=search_key, status=status)
+    if flow_persited:
+        flow = flow_persited
+        print(f"Dataflow found search_key={search_key} and status={status}")
         print(flow.to_json())
     else:
         print(f"No dataflow found with lookup_key={lookup_key} and status={status}")
+        flow.resume()
+        flow.to_backingstore(engine)
     # flow.to_backingstore(engine)
 
 if __name__ == "__main__":
