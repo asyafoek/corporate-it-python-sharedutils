@@ -47,7 +47,7 @@ class DataFlow:
             or self.DEFAULT_SCHEMA_NAME
         )
 
-        self.status = "NEW"
+        self.new()
 
         self.start_timestamp = datetime.now(timezone.utc)
         self.finish_timestamp = None
@@ -97,8 +97,8 @@ class DataFlow:
             }
         )
 
-        if self.status not in ("SUCCESS", "FAILED"):
-            self.status = "IN_PROGRESS"
+        # if self.status not in ("SUCCESS", "FAILED"):
+        #     self.status = "IN_PROGRESS"
 
     @property
     def first_step(self):
@@ -113,6 +113,29 @@ class DataFlow:
 
         return self.steps[-1] if self.steps else None
 
+    def new(self):
+
+        self.status = "NEW"
+
+    def open(self):
+
+        self.status = "OPEN"
+
+    def closed(self):
+
+        self.status = "CLOSED"
+        self.finish_timestamp = datetime.now(timezone.utc)
+
+    def aborted(self):
+
+        self.status = "ABORTED"
+        self.finish_timestamp = datetime.now(timezone.utc)
+
+    def completed(self):
+
+        self.status = "COMPLETED"
+        self.finish_timestamp = datetime.now(timezone.utc)
+
     def success(self):
 
         self.status = "SUCCESS"
@@ -126,6 +149,11 @@ class DataFlow:
     def pause(self):
 
         self.status = "PAUSED"
+        self.finish_timestamp = None
+
+    def inProgress(self):
+
+        self.status = "IN_PROGRESS"
         self.finish_timestamp = None
 
     def resume(self):
@@ -674,7 +702,8 @@ def main():
 
     lookup_key = f"{market}|{market_data}|{symbol}|Long"
     search_key = f"{market}|{market_data}|{symbol}"
-    status = "IN_PROGRESS"
+    # status = "IN_PROGRESS"
+    status = "OPEN"
 
     flow = DataFlow(
         context={
@@ -846,7 +875,7 @@ def main():
         },
     )
 
-    flow.success()
+    # flow.success()
 
     flow.retention = "4h"
     # flow.print()
@@ -892,13 +921,13 @@ def main():
     flow_persited = DataFlow.from_backingstore(engine, lookup_key=search_key, status=status)
     if flow_persited:
         flow = flow_persited
-        flow.success()
+        flow.closed()
         print(f"Dataflow found search_key={search_key} and status={status}")
         print(flow.to_json())
         flow.to_backingstore(engine)
     else:
         print(f"No dataflow found with lookup_key={lookup_key} and status={status}")
-        flow.resume()
+        flow.open()
         flow.to_backingstore(engine)
     # flow.to_backingstore(engine)
 
