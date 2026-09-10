@@ -126,10 +126,12 @@ class DataFlow:
     def pause(self):
 
         self.status = "PAUSED"
+        self.finish_timestamp = None
 
     def resume(self):
 
         self.status = "IN_PROGRESS"
+        self.finish_timestamp = None
 
 
     @property
