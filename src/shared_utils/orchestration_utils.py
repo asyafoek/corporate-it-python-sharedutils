@@ -89,13 +89,16 @@ class DataFlow:
             else datetime.now(timezone.utc)
         )
 
-        self.steps.append(
-            {
-                "step_name": step_name,
-                "event_timestamp": event_timestamp,
-                "payload": payload,
-            }
-        )
+        step = {
+            "step_name": step_name,
+            "event_timestamp": event_timestamp,
+            "payload": payload,
+        }
+
+        self.steps.append(step)
+
+        return step
+
 
     def exists_step(
         self,
