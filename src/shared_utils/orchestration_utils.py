@@ -97,8 +97,27 @@ class DataFlow:
             }
         )
 
-        # if self.status not in ("SUCCESS", "FAILED"):
-        #     self.status = "IN_PROGRESS"
+    def exists_step(
+        self,
+        step_name: str,
+    ) -> bool:
+
+        return any(
+            step["step_name"] == step_name
+            for step in self.steps
+        )
+
+    def get_step(
+        self,
+        step_name: str,
+    ) -> dict | None:
+
+        for step in self.steps:
+
+            if step["step_name"] == step_name:
+                return step
+
+        return None
 
     @property
     def first_step(self):
