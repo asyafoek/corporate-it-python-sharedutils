@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from datetime import datetime, timezone
 import requests
 
@@ -84,6 +85,21 @@ class AirflowApiClient:
     def delete(self, path: str, **kwargs):
         return self.request("DELETE", path, **kwargs)
 
+    @staticmethod
+    def get_topic_dag_mapping() -> dict[str, str]:
+        mapping = {}
+
+        config = os.getenv("AIRFLOW_TOPIC_DAG_MAPPING", "")
+
+        for item in config.split(";"):
+            if not item.strip():
+                continue
+
+            topic, dag_id = item.split(",", 1)
+
+            mapping[topic.strip()] = dag_id.strip()
+
+        return mapping
 
 def main():
     client = AirflowApiClient(
@@ -99,24 +115,26 @@ def main():
     response = client.post(
         "/api/v2/dags/corporate_it_idts_process_kafka_message_manually/dagRuns",
         json={
+            "logical_date": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
             "conf": {
                 "key": "AAPL",
                 "value": {
                     "symbol": "AAPL",
-                    "side": "BUY",
-                    "quantity": 100,
                     "price": 250.75,
+                    "custom": 250.75,
                 },
                 "headers": {
                     "source": "simulator",
-                    "topic": "stock-orders",
-                    "event_type": "order_created",
                 },
-                "timestamp": datetime.now(timezone.utc).isoformat(),
-            }
+                "timestamp": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            },
         },
     )
+
     print(response)
+
+
+    print(client.get_topic_dag_mapping())
 
 if __name__ == "__main__":
     main()        
