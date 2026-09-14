@@ -4,8 +4,6 @@ import os
 from datetime import datetime, timezone
 import requests
 
-
-
 class AirflowApiClient:
     def __init__(
         self,
