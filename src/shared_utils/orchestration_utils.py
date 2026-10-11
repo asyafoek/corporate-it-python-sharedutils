@@ -372,18 +372,22 @@ class DataFlow:
         return cls.from_dict(json.loads(text))
 
 
-    def to_backingstore(self, engine):
+    @classmethod
+    def ensure_backingstore(
+        cls,
+        engine,
+        schema_name: str,
+        context_table_name: str,
+        step_table_name: str,
+    ):
 
         with engine.begin() as conn:
-
-            # =====================================================================
-            # CREATE TABLES IF THEY DO NOT EXIST
-            # =====================================================================
 
             conn.execute(
                 text(
                     f"""
-                    CREATE TABLE IF NOT EXISTS {self.schema_name}.{self.context_table_name}
+                    CREATE TABLE IF NOT EXISTS
+                    {schema_name}.{context_table_name}
                     (
                         external_reference_id VARCHAR(255) PRIMARY KEY,
                         lookup_key VARCHAR(255),
@@ -398,14 +402,12 @@ class DataFlow:
                 )
             )
 
-            print("table")
-
             conn.execute(
                 text(
                     f"""
                     CREATE INDEX IF NOT EXISTS
-                        idx_{self.context_table_name}_lookup_key
-                    ON {self.schema_name}.{self.context_table_name}
+                    idx_{context_table_name}_lookup_key
+                    ON {schema_name}.{context_table_name}
                     (
                         lookup_key
                     )
@@ -413,14 +415,12 @@ class DataFlow:
                 )
             )
 
-            print("index")
-
             conn.execute(
                 text(
                     f"""
                     CREATE INDEX IF NOT EXISTS
-                        idx_{self.context_table_name}_status
-                    ON {self.schema_name}.{self.context_table_name}
+                    idx_{context_table_name}_status
+                    ON {schema_name}.{context_table_name}
                     (
                         status
                     )
@@ -428,12 +428,11 @@ class DataFlow:
                 )
             )
 
-            print("table")
-
             conn.execute(
                 text(
                     f"""
-                    CREATE TABLE IF NOT EXISTS {self.schema_name}.{self.step_table_name}
+                    CREATE TABLE IF NOT EXISTS
+                    {schema_name}.{step_table_name}
                     (
                         id BIGSERIAL PRIMARY KEY,
                         external_reference_id VARCHAR(255) NOT NULL,
@@ -441,9 +440,9 @@ class DataFlow:
                         event_timestamp TIMESTAMPTZ NOT NULL,
                         payload_json JSONB NOT NULL,
 
-                        CONSTRAINT fk_{self.step_table_name}
+                        CONSTRAINT fk_{step_table_name}
                         FOREIGN KEY (external_reference_id)
-                        REFERENCES {self.schema_name}.{self.context_table_name}
+                        REFERENCES {schema_name}.{context_table_name}
                         (
                             external_reference_id
                         )
@@ -453,14 +452,12 @@ class DataFlow:
                 )
             )
 
-            print("index")
-
             conn.execute(
                 text(
                     f"""
                     CREATE INDEX IF NOT EXISTS
-                        idx_{self.step_table_name}_external_reference_id
-                    ON {self.schema_name}.{self.step_table_name}
+                    idx_{step_table_name}_external_reference_id
+                    ON {schema_name}.{step_table_name}
                     (
                         external_reference_id
                     )
@@ -472,14 +469,26 @@ class DataFlow:
                 text(
                     f"""
                     CREATE INDEX IF NOT EXISTS
-                        idx_{self.step_table_name}_event_timestamp
-                    ON {self.schema_name}.{self.step_table_name}
+                    idx_{step_table_name}_event_timestamp
+                    ON {schema_name}.{step_table_name}
                     (
                         event_timestamp
                     )
                     """
                 )
             )
+
+    def to_backingstore(self, engine):
+
+        self.ensure_backingstore(
+            engine=engine,
+            schema_name=self.schema_name,
+            context_table_name=self.context_table_name,
+            step_table_name=self.step_table_name,
+        )   
+
+        with engine.begin() as conn:
+
 
             # =====================================================================
             # CONTEXT RECORD
@@ -604,6 +613,13 @@ class DataFlow:
         context_table_name: str = DEFAULT_CONTEXT_TABLE,
         step_table_name: str = DEFAULT_STEP_TABLE,
     ):
+
+        cls.ensure_backingstore(
+            engine=engine,
+            schema_name=schema_name,
+            context_table_name=context_table_name,
+            step_table_name=step_table_name,
+        )   
 
         if external_reference_id is not None:
 
