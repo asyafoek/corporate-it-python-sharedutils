@@ -11,10 +11,7 @@ from datetime import (
     timedelta
 )
 
-
-
-# from shared_utils.postgres_utils import (
-from postgres_utils import (
+from shared_utils.postgres_utils import (
     get_default_engine,
     select_to_json,
     get_schema_dict,
