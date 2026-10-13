@@ -1,3 +1,5 @@
+import re
+
 import pandas as pd
 import numpy as np
 from decimal import Decimal
@@ -3257,3 +3259,162 @@ def get_or_create_trading_session(
 
     return record
 
+
+
+def get_symbol_for_ticker(
+    engine,
+    broker_name,
+    account_mode,
+    ticker,
+    position_side
+):
+    sql = """
+    SELECT
+        asset_class,
+        asset_long_format,
+        asset_short_format
+    FROM raw.idts_all_application_accounts_persisted_1
+    WHERE broker_name = :broker_name
+      AND account_mode = :account_mode
+    LIMIT 1
+    """
+
+    rows = select_to_json(
+        engine,
+        sql,
+        {
+            "broker_name": broker_name,
+            "account_mode": account_mode
+        }
+    )
+
+    if not rows:
+        return None
+
+    account = rows[0]
+
+    asset_class = (
+        account.get("asset_class")
+        or ""
+    )
+
+    symbol_format = (
+        account["asset_long_format"]
+        if position_side == "Long"
+        else account["asset_short_format"]
+    )
+
+    #
+    # Stocks
+    #
+    if asset_class.lower() == "stocks":
+
+        symbol = ticker
+
+        sql = """
+        SELECT 1
+        FROM raw.alpaca_stocks_market_tickers_persisted_1
+        WHERE symbol = :symbol
+        LIMIT 1
+        """
+
+        rows = select_to_json(
+            engine,
+            sql,
+            {
+                "symbol": symbol
+            }
+        )
+
+        return symbol if rows else None
+
+    #
+    # Crypto
+    #
+    if ":" in ticker:
+        ticker = ticker.split(":", 1)[1]
+
+    match = re.match(
+        r"^([A-Z]+)(USD|USDT|USDC|EUR)$",
+        ticker
+    )
+
+    if not match:
+        return None
+
+    base_asset = match.group(1)
+    quote = match.group(2)
+
+    symbol = (
+        symbol_format
+        .replace("{base_asset}", base_asset)
+        .replace("{quote}", quote)
+    )
+
+    if broker_name == "Kraken":
+
+        sql = """
+        SELECT 1
+        FROM raw.kraken_crypto_market_tickers_persisted_1
+        WHERE symbol = :symbol
+        LIMIT 1
+        """
+
+    elif broker_name == "OKX":
+
+        sql = """
+        SELECT 1
+        FROM raw.okx_crypto_market_tickers_persisted_1
+        WHERE inst_id = :symbol
+        LIMIT 1
+        """
+
+    else:
+        return symbol
+
+    rows = select_to_json(
+        engine,
+        sql,
+        {
+            "symbol": symbol
+        }
+    )
+
+    return symbol if rows else None
+
+
+
+def get_positions_for_symbol(
+    engine,
+    market,
+    broker_name,
+    profile_identity,
+    account_mode,
+    symbol,
+    position_side
+):
+    sql = """
+    SELECT *
+    FROM raw.vw_idts_all_market_positions_snapshotted_1
+    WHERE market = :market
+      AND broker_name = :broker_name
+      AND profile_identity = :profile_identity
+      AND account_mode = :account_mode
+      AND symbol = :symbol
+      AND side = :position_side
+    """
+
+    rows = select_to_json(
+        engine,
+        sql,
+        {
+            "market": market,
+            "broker_name": broker_name,
+            "profile_identity": profile_identity,
+            "account_mode": account_mode,
+            "symbol": symbol,
+            "position_side": position_side
+        }
+    )
+
+    return rows or []
