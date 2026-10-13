@@ -3304,7 +3304,7 @@ def get_profile_configuration(
         return None
 
     return rows[0]
-``
+
 
 def get_symbol_for_ticker(
     engine,
