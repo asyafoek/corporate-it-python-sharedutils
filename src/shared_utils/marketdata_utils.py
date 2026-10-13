@@ -3259,7 +3259,52 @@ def get_or_create_trading_session(
 
     return record
 
+def get_profile_configuration(
+    engine,
+    profile_name
+):
+    sql = """
+    SELECT
+        p.profile_name,
+        p.profile_identity,
+        p.trading_mode,
+        p.market,
+        p.strategy_trading_side,
+        p.strategy_trading_horizon,
 
+        a.broker_name,
+        a.account_mode,
+        a.asset_class,
+        a.asset_long_format,
+        a.asset_short_format,
+        a.base_url,
+        a.secrets
+
+    FROM raw.idts_all_application_profiles_persisted_1 p
+
+    INNER JOIN raw.idts_all_application_accounts_persisted_1 a
+        ON p.profile_name = a.profile_name
+
+    WHERE p.profile_name = :profile_name
+      AND p.enabled = true
+      AND a.enabled = true
+
+    LIMIT 1
+    """
+
+    rows = select_to_json(
+        engine,
+        sql,
+        {
+            "profile_name": profile_name
+        }
+    )
+
+    if not rows:
+        return None
+
+    return rows[0]
+``
 
 def get_symbol_for_ticker(
     engine,
@@ -3391,7 +3436,6 @@ def get_positions_for_symbol(
     profile_identity,
     account_mode,
     symbol,
-    position_side
 ):
     sql = """
     SELECT *
@@ -3401,7 +3445,6 @@ def get_positions_for_symbol(
       AND profile_identity = :profile_identity
       AND account_mode = :account_mode
       AND symbol = :symbol
-      AND side = :position_side
     """
 
     rows = select_to_json(
@@ -3413,7 +3456,6 @@ def get_positions_for_symbol(
             "profile_identity": profile_identity,
             "account_mode": account_mode,
             "symbol": symbol,
-            "position_side": position_side
         }
     )
 
