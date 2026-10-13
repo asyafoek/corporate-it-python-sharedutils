@@ -3305,6 +3305,39 @@ def get_profile_configuration(
 
     return rows[0]
 
+def get_broker_symbol_mapping(
+    engine,
+    broker_name,
+    account_mode,
+    ticker,
+    position_side,
+):
+    sql = """
+    SELECT symbol
+    FROM raw.idts_all_reference_brokersymbols_persisted_1
+    WHERE broker_name = :broker_name
+      AND account_mode = :account_mode
+      AND ticker = :ticker
+      AND position_side = :position_side
+      AND enabled = true
+    LIMIT 1
+    """
+
+    rows = select_to_json(
+        engine,
+        sql,
+        {
+            "broker_name": broker_name,
+            "account_mode": account_mode,
+            "ticker": ticker,
+            "position_side": position_side,
+        }
+    )
+
+    if not rows:
+        return None
+
+    return rows[0]["symbol"]
 
 def get_symbol_for_ticker(
     engine,
@@ -3313,6 +3346,8 @@ def get_symbol_for_ticker(
     ticker,
     position_side
 ):
+    original_ticker = ticker
+
     sql = """
     SELECT
         asset_class,
@@ -3334,7 +3369,13 @@ def get_symbol_for_ticker(
     )
 
     if not rows:
-        return None
+        return get_broker_symbol_mapping(
+            engine,
+            broker_name,
+            account_mode,
+            original_ticker,
+            position_side,
+        )
 
     account = rows[0]
 
@@ -3371,7 +3412,16 @@ def get_symbol_for_ticker(
             }
         )
 
-        return symbol if rows else None
+        if rows:
+            return symbol
+
+        return get_broker_symbol_mapping(
+            engine,
+            broker_name,
+            account_mode,
+            original_ticker,
+            position_side,
+        )
 
     #
     # Crypto
@@ -3385,7 +3435,13 @@ def get_symbol_for_ticker(
     )
 
     if not match:
-        return None
+        return get_broker_symbol_mapping(
+            engine,
+            broker_name,
+            account_mode,
+            original_ticker,
+            position_side,
+        )
 
     base_asset = match.group(1)
     quote = match.group(2)
@@ -3425,8 +3481,16 @@ def get_symbol_for_ticker(
         }
     )
 
-    return symbol if rows else None
+    if rows:
+        return symbol
 
+    return get_broker_symbol_mapping(
+        engine,
+        broker_name,
+        account_mode,
+        original_ticker,
+        position_side,
+    )
 
 
 def get_positions_for_symbol(
