@@ -2,9 +2,10 @@ import re
 
 import pandas as pd
 import numpy as np
-from decimal import Decimal
 import json
 
+from decimal import Decimal
+from sqlalchemy import text
 from zoneinfo import ZoneInfo
 
 from datetime import (
@@ -3636,7 +3637,7 @@ def append_signal_score_rows(
 
     rule_engine_version = (
         profile_row[
-            "strategy_rule_engine_version"
+            "rule_engine_version"
         ]
     )
 
@@ -3733,7 +3734,7 @@ def append_provider_score_rows(
 
     rule_engine_version = (
         profile_row[
-            "strategy_rule_engine_version"
+            "rule_engine_version"
         ]
     )
 
@@ -3830,7 +3831,7 @@ def append_watch_setup_row(
         ],
 
         profile_row[
-            "strategy_rule_engine_version"
+            "rule_engine_version"
         ],
 
         profile_row[
@@ -3888,7 +3889,7 @@ def append_watch_setup_row(
 
         "rule_engine_version":
             profile_row[
-                "strategy_rule_engine_version"
+                "rule_engine_version"
             ],
 
         "strategy_trading_horizon":
