@@ -3524,3 +3524,405 @@ def get_positions_for_symbol(
     )
 
     return rows or []
+
+
+def build_profile_dict(
+    row
+):
+
+    return {
+
+        "profile_name":
+            row["profile_name"],
+
+        "profile_identity":
+            row["profile_identity"],
+
+        "market":
+            row["market"],
+
+        "trading_mode":
+            row["trading_mode"],
+
+        "strategy_rule_engine_version":
+            row["strategy_rule_engine_version"],
+
+        "strategy_trading_horizon":
+            row["strategy_trading_horizon"],
+
+        "strategy_trading_side":
+            row["strategy_trading_side"],
+
+        "strategy_minimum_trend_strength":
+            row["strategy_minimum_trend_strength"],
+
+        "strategy_minimum_traded_volume":
+            row["strategy_minimum_traded_volume"],
+
+        "strategy_minimum_relative_volume":
+            row["strategy_minimum_relative_volume"],
+
+        "strategy_minimum_volume_weighted_price":
+            row["strategy_minimum_volume_weighted_price"],
+    
+        "strategy_minimum_signal_strength":
+            row["strategy_minimum_signal_strength"]
+    }
+
+
+def load_engine_configuration(
+    engine,
+    table_name: str,
+    engine_version: int
+):
+
+    query = text(
+        f"""
+        SELECT
+            provider_name,
+            provider_version
+        FROM
+            {table_name}
+        WHERE
+            engine_version = :engine_version
+        ORDER BY
+            sort_order
+        """
+    )
+
+    with engine.connect() as connection:
+
+        result = connection.execute(
+            query,
+            {
+                "engine_version": engine_version
+            }
+        )
+
+        configuration = [
+            (
+                row.provider_name,
+                row.provider_version
+            )
+            for row in result
+        ]
+
+    return (
+        configuration
+        if configuration
+        else None
+    )
+
+
+def append_signal_score_rows(
+    records,
+    result,
+    profile_row,
+    ticker,
+    timestamp_value,
+    run_id,
+    provider_count_configured,
+    provider_count_evaluated,
+    providers_evaluated_json,
+    providers_not_evaluated_json
+):
+
+    signal_summary = (
+        result.get(
+            "signal_summary",
+            {}
+        )
+    )
+
+    rule_engine_version = (
+        profile_row[
+            "strategy_rule_engine_version"
+        ]
+    )
+
+    for side, signals in (
+        signal_summary.items()
+    ):
+
+        for signal_name, percentage in (
+            signals.items()
+        ):
+
+            if signal_name not in [
+                "buy_percentage",
+                "wait_percentage",
+                "hold_percentage",
+                "sell_percentage"
+            ]:
+                continue
+
+            signal = (
+                signal_name
+                .replace(
+                    "_percentage",
+                    ""
+                )
+                # .upper()
+            )
+
+            records.append({
+
+                "run_id":
+                    run_id,
+
+                "profile_identity":
+                    profile_row[
+                        "profile_identity"
+                    ],
+
+                "profile_name":
+                    profile_row[
+                        "profile_name"
+                    ],
+
+                "trading_mode":
+                    profile_row[
+                        "trading_mode"
+                    ],
+
+                "ticker":
+                    ticker,
+
+                "t":
+                    timestamp_value,
+
+                "rule_engine_version":
+                    rule_engine_version,
+
+                "side":
+                    # side.upper(),
+                    side.title(),
+
+                "signal":
+                    signal.title(),
+
+                "percentage":
+                    percentage,
+
+                "provider_count_configured":
+                    provider_count_configured,
+                "provider_count_evaluated":
+                    provider_count_evaluated,
+
+                "providers_evaluated_json":
+                    providers_evaluated_json,
+                "providers_not_evaluated_json":
+                    providers_not_evaluated_json,                    
+            })
+
+def append_provider_score_rows(
+    records,
+    result,
+    profile_row,
+    ticker,
+    timestamp_value,
+    run_id
+):
+
+    trading_signals = (
+        result.get(
+            "trading_signals",
+            []
+        )
+    )
+
+    rule_engine_version = (
+        profile_row[
+            "strategy_rule_engine_version"
+        ]
+    )
+
+    for signal in trading_signals:
+
+        records.append({
+            "run_id":
+                run_id,
+
+            "profile_identity":
+                profile_row[
+                    "profile_identity"
+                ],
+
+            "profile_name":
+                profile_row[
+                    "profile_name"
+                ],
+
+            "trading_mode":
+                profile_row[
+                    "trading_mode"
+                ],
+
+            "ticker":
+                ticker,
+
+            "t":
+                timestamp_value,
+
+            "rule_engine_version":
+                rule_engine_version,
+
+            "provider":
+                signal.get(
+                    "provider"
+                ),
+
+            "provider_version":
+                signal.get(
+                    "provider_version"
+                ),
+
+            "side":
+                str(
+                    signal.get(
+                        "side"
+                    )
+                # ).upper(),
+                ),
+
+            "signal":
+                str(
+                    signal.get(
+                        "signal"
+                    )
+                # ).upper(),
+                ),
+
+            "confidence_percentage":
+                signal.get(
+                    "confidence_percentage"
+                ),
+
+            "validations_json":
+                json.dumps(
+                    signal.get(
+                        "validations",
+                        []
+                    )
+                )
+        })
+
+
+def append_watch_setup_row(
+    records,
+    profile_row,
+    timestamp_value,
+    watch_setup_keys
+):
+
+    key = (
+
+        profile_row[
+            "profile_identity"
+        ],
+
+        profile_row[
+            "broker_name"
+        ],
+
+        profile_row[
+            "account_mode"
+        ],
+
+        profile_row[
+            "strategy_rule_engine_version"
+        ],
+
+        profile_row[
+            "strategy_trading_horizon"
+        ],
+
+        profile_row[
+            "strategy_trading_side"
+        ]
+    )
+
+    if key in watch_setup_keys:
+
+        return
+
+    watch_setup_keys.add(
+        key
+    )
+
+    records.append({
+
+
+        "t":
+            timestamp_value,
+
+        "profile_identity":
+            profile_row[
+                "profile_identity"
+            ],
+
+        "profile_name":
+            profile_row[
+                "profile_name"
+            ],
+
+        "trading_mode":
+            profile_row[
+                "trading_mode"
+            ],
+
+        "broker_name":
+            profile_row[
+                "broker_name"
+            ],
+
+        "account_mode":
+            profile_row[
+                "account_mode"
+            ],
+
+        "secrets":
+            profile_row[
+                "secrets"
+            ],
+
+        "rule_engine_version":
+            profile_row[
+                "strategy_rule_engine_version"
+            ],
+
+        "strategy_trading_horizon":
+            profile_row[
+                "strategy_trading_horizon"
+            ],
+
+        "trading_side":
+            profile_row[
+                "strategy_trading_side"
+            ],
+
+        "strategy_minimum_trend_strength":
+            profile_row[
+                "strategy_minimum_trend_strength"
+            ],
+
+        "strategy_minimum_traded_volume":
+            profile_row[
+                "strategy_minimum_traded_volume"
+            ],
+
+        "strategy_minimum_relative_volume":
+            profile_row[
+                "strategy_minimum_relative_volume"
+            ],
+
+        "strategy_minimum_volume_weighted_price":
+            profile_row[
+                "strategy_minimum_volume_weighted_price"
+            ],
+
+        "strategy_minimum_signal_strength":
+            profile_row[
+                "strategy_minimum_signal_strength"
+            ]
+    })
