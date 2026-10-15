@@ -3544,8 +3544,8 @@ def build_profile_dict(
         "trading_mode":
             row["trading_mode"],
 
-        "strategy_rule_engine_version":
-            row["strategy_rule_engine_version"],
+        "rule_engine_version":
+            row["rule_engine_version"],
 
         "strategy_trading_horizon":
             row["strategy_trading_horizon"],
