@@ -4,6 +4,8 @@ import pandas as pd
 import numpy as np
 import json
 
+from math import floor
+
 from decimal import Decimal
 from sqlalchemy import text
 from zoneinfo import ZoneInfo
@@ -95,6 +97,16 @@ COLUMNS_TO_KEEP = [
     "mean_reversion_readiness",
 
     "volume_avg20",
+
+    "poc_price",
+    "vah_price",
+    "val_price",
+
+    "distance_to_poc",
+    "distance_to_vah",
+    "distance_to_val",
+
+    "value_area_position",
 
     "rvol",
 
@@ -190,6 +202,194 @@ HORIZON_COLUMNS = [
     "t",
     "horizons"
 ]
+
+
+VOLUME_PROFILE_LOOKBACK = 200
+VOLUME_PROFILE_BINS = 100
+
+def calculate_volume_profile(
+    window_df,
+    bins=VOLUME_PROFILE_BINS
+):
+
+    price_min = window_df["l"].min()
+    price_max = window_df["h"].max()
+
+    if price_min == price_max:
+        return (
+            np.nan,
+            np.nan,
+            np.nan
+        )
+
+    bucket_edges = np.linspace(
+        price_min,
+        price_max,
+        bins + 1
+    )
+
+    bucket_centers = (
+        bucket_edges[:-1]
+        + bucket_edges[1:]
+    ) / 2
+
+    volume_per_bucket = np.zeros(
+        bins
+    )
+
+    for _, row in window_df.iterrows():
+
+        bucket = np.searchsorted(
+            bucket_edges,
+            row["vw"],
+            side="right"
+        ) - 1
+
+        bucket = max(
+            0,
+            min(
+                bucket,
+                bins - 1
+            )
+        )
+
+        volume_per_bucket[
+            bucket
+        ] += row["v"]
+
+    poc_idx = np.argmax(
+        volume_per_bucket
+    )
+
+    poc_price = bucket_centers[
+        poc_idx
+    ]
+
+    total_volume = (
+        volume_per_bucket.sum()
+    )
+
+    target_volume = (
+        total_volume * 0.70
+    )
+
+    cumulative_volume = (
+        volume_per_bucket[poc_idx]
+    )
+
+    low_idx = poc_idx
+    high_idx = poc_idx
+
+    while (
+        cumulative_volume
+        < target_volume
+    ):
+
+        volume_above = (
+            volume_per_bucket[
+                high_idx + 1
+            ]
+            if high_idx < bins - 1
+            else -1
+        )
+
+        volume_below = (
+            volume_per_bucket[
+                low_idx - 1
+            ]
+            if low_idx > 0
+            else -1
+        )
+
+        if volume_above >= volume_below:
+
+            high_idx += 1
+            cumulative_volume += (
+                volume_above
+            )
+
+        else:
+
+            low_idx -= 1
+            cumulative_volume += (
+                volume_below
+            )
+
+    val_price = bucket_centers[
+        low_idx
+    ]
+
+    vah_price = bucket_centers[
+        high_idx
+    ]
+
+    return (
+        poc_price,
+        vah_price,
+        val_price
+    )
+
+def add_volume_profile_indicators(
+    group,
+    lookback=VOLUME_PROFILE_LOOKBACK
+):
+
+    group["poc_price"] = np.nan
+    group["vah_price"] = np.nan
+    group["val_price"] = np.nan
+
+    for i in range(len(group)):
+
+        window = group.iloc[
+            max(0, i - lookback + 1):i + 1
+        ]
+
+        poc, vah, val = (
+            calculate_volume_profile(
+                window
+            )
+        )
+
+        idx = group.index[i]
+
+        group.at[idx, "poc_price"] = poc
+        group.at[idx, "vah_price"] = vah
+        group.at[idx, "val_price"] = val
+
+    group["distance_to_poc"] = (
+        (group["vw"] - group["poc_price"])
+        /
+        group["poc_price"]
+    )
+
+    group["distance_to_vah"] = (
+        (group["vw"] - group["vah_price"])
+        /
+        group["vah_price"]
+    )
+
+    group["distance_to_val"] = (
+        (group["vw"] - group["val_price"])
+        /
+        group["val_price"]
+    )
+
+    group["value_area_position"] = (
+        (
+            group["vw"]
+            - group["val_price"]
+        )
+        /
+        (
+            group["vah_price"]
+            - group["val_price"]
+        ).replace(
+            0,
+            np.nan
+        )
+    )
+
+    return group
 
 
 def calculate_adx(
@@ -987,6 +1187,22 @@ def calculate_indicators(
         group["rvol_change"] = (
             group["rvol"]
             .pct_change(5)
+        )
+
+
+        # group["poc_price"] = np.nan
+        # group["vah_price"] = np.nan
+        # group["val_price"] = np.nan
+
+        # group["distance_to_poc"] = np.nan
+        # group["distance_to_vah"] = np.nan
+        # group["distance_to_val"] = np.nan
+
+        # group["value_area_position"] = np.nan
+
+
+        group = add_volume_profile_indicators(
+            group
         )
 
         group = calculate_adx(group)
@@ -3266,20 +3482,66 @@ def get_profile_configuration(
 ):
     sql = """
     SELECT
-        p.profile_name,
         p.profile_identity,
         p.trading_mode,
         p.market,
         p.strategy_trading_side,
         p.strategy_trading_horizon,
+        r.*
 
-        a.broker_name,
-        a.account_mode,
-        a.asset_class,
-        a.asset_long_format,
-        a.asset_short_format,
-        a.base_url,
-        a.secrets
+    FROM raw.idts_all_application_profiles_persisted_1 p
+
+    INNER JOIN raw.idts_all_application_riskreward_persisted_1 r
+        ON p.profile_name = r.profile_name
+
+    WHERE p.profile_name = :profile_name
+      AND p.enabled = true
+      AND r.enabled = true
+    """
+
+    rows = select_to_json(
+        engine,
+        sql,
+        {
+            "profile_name": profile_name
+        }
+    )
+
+    if not rows:
+        return None
+
+    return rows
+
+ 
+def get_profile_account(
+    engine,
+    profile_name
+):
+    sql = """
+    SELECT
+        p.profile_identity,
+        p.trading_mode,
+        p.market,
+        p.strategy_trading_side,
+        p.strategy_trading_horizon,
+        p.strategy_minimum_trend_strength,
+        p.strategy_minimum_traded_volume,
+        p.strategy_minimum_relative_volume,
+        p.strategy_minimum_volume_weighted_price,
+        p.strategy_minimum_signal_strength,
+        p.strategy_position_management_trading_capital,
+        p.strategy_position_management_max_concurrent_trades,
+        p.strategy_position_management_max_trades_per_ticker,
+        p.strategy_position_management_max_trades_per_day,
+        p.strategy_position_management_min_correlation_group_threshold,
+        p.strategy_position_management_max_correlation_group_strength,
+        p.strategy_position_management_max_trades_per_correlation_group,
+        p.strategy_session_scopes,
+        p.strategy_holding_policy_min_holding_period,
+        p.strategy_holding_policy_min_holding_unit,
+        p.strategy_holding_policy_max_holding_period,
+        p.strategy_holding_policy_max_holding_unit,            
+        a.*
 
     FROM raw.idts_all_application_profiles_persisted_1 p
 
@@ -3521,6 +3783,37 @@ def get_positions_for_symbol(
             "profile_identity": profile_identity,
             "account_mode": account_mode,
             "symbol": symbol,
+        }
+    )
+
+    return rows or []
+
+def get_positions_for_profile(
+    engine,
+    market,
+    broker_name,
+    profile_identity,
+    account_mode,
+):
+    sql = """
+    SELECT *
+
+    FROM raw.vw_idts_all_market_positions_snapshotted_1
+
+    WHERE market = :market
+      AND broker_name = :broker_name
+      AND profile_identity = :profile_identity
+      AND account_mode = :account_mode
+    """
+
+    rows = select_to_json(
+        engine,
+        sql,
+        {
+            "market": market,
+            "broker_name": broker_name,
+            "profile_identity": profile_identity,
+            "account_mode": account_mode,
         }
     )
 
@@ -3927,3 +4220,130 @@ def append_watch_setup_row(
                 "strategy_minimum_signal_strength"
             ]
     })
+
+
+def calculate_risk_reward_ratio(
+    risk_reward_notation: str
+):
+    risk, reward = map(
+        float,
+        risk_reward_notation.split(":")
+    )
+
+    risk_reward_ratio = reward / risk
+
+    return (
+        risk,
+        reward,
+        risk_reward_ratio
+    )
+
+
+
+from math import floor
+
+def calculate_standard_position_size(
+    starting_capital,
+    max_risk_per_trade_percentage,
+    max_concurrent_trades,
+    atr,
+    atr_multiplier,
+    entry
+):
+    if (
+        atr <= 0
+        or atr_multiplier <= 0
+        or entry <= 0
+        or max_concurrent_trades <= 0
+    ):
+        return 0, 0
+
+    capital_per_trade = (
+        starting_capital /
+        max_concurrent_trades
+    )
+
+    max_risk_per_trade = (
+        capital_per_trade *
+        (
+            max_risk_per_trade_percentage / 100
+        )
+    )
+
+    stop_loss_distance = (
+        atr * atr_multiplier
+    )
+
+    # standard_size = floor(
+    #     max_risk_per_trade /
+    #     stop_loss_distance
+    # )
+
+    risk_size = floor(
+        max_risk_per_trade /
+        stop_loss_distance
+    )
+
+    capital_size = floor(
+        capital_per_trade /
+        entry
+    )
+
+    standard_size = min(
+        risk_size,
+        capital_size
+    )
+
+    standard_capital = (
+        standard_size *
+        entry
+    )
+
+    return (
+        standard_size,
+        standard_capital
+    )
+
+
+def calculate_kelly_position_size(
+    starting_capital,
+    risk_reward_ratio,
+    expected_win_rate,
+    fractional_kelly,
+    entry
+):
+
+
+    if (
+        risk_reward_ratio <= 0
+        or entry <= 0
+        or expected_win_rate < 0
+        or expected_win_rate > 1
+    ):
+        return 0, 0
+
+    kelly = (
+        expected_win_rate -
+        (
+            (1 - expected_win_rate)
+            / risk_reward_ratio
+        )
+    )
+
+    fractional_kelly_position = (
+        kelly *
+        fractional_kelly
+    )
+
+    kelly_capital = (
+        starting_capital *
+        fractional_kelly_position
+    )
+
+    kelly_size = floor(
+        kelly_capital /
+        entry
+    )
+
+    return kelly_size, kelly_capital
+
