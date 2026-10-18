@@ -3476,7 +3476,7 @@ def get_or_create_trading_session(
 
     return record
 
-def get_profile_configuration(
+def get_profile_configurations(
     engine,
     profile_name
 ):
