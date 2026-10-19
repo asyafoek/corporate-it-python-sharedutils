@@ -4515,3 +4515,21 @@ def build_symbol_lookup_key(
             side,
         ]
     )
+
+def build_symbol_position_lookup_key(
+    *,
+    market: str,
+    broker_name: str,
+    account_mode: str,
+    profile_identity: int,
+    symbol: str,
+) -> str:
+    return "|".join(
+        [
+            market,
+            broker_name,
+            account_mode,
+            str(profile_identity),
+            symbol,
+        ]
+    )
