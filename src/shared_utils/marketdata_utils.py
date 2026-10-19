@@ -334,6 +334,68 @@ def calculate_volume_profile(
         val_price
     )
 
+# def add_volume_profile_indicators(
+#     group,
+#     lookback=VOLUME_PROFILE_LOOKBACK
+# ):
+
+#     group["poc_price"] = np.nan
+#     group["vah_price"] = np.nan
+#     group["val_price"] = np.nan
+
+#     for i in range(len(group)):
+
+#         window = group.iloc[
+#             max(0, i - lookback + 1):i + 1
+#         ]
+
+#         poc, vah, val = (
+#             calculate_volume_profile(
+#                 window
+#             )
+#         )
+
+#         idx = group.index[i]
+
+#         group.at[idx, "poc_price"] = poc
+#         group.at[idx, "vah_price"] = vah
+#         group.at[idx, "val_price"] = val
+
+#     group["distance_to_poc"] = (
+#         (group["vw"] - group["poc_price"])
+#         /
+#         group["poc_price"]
+#     )
+
+#     group["distance_to_vah"] = (
+#         (group["vw"] - group["vah_price"])
+#         /
+#         group["vah_price"]
+#     )
+
+#     group["distance_to_val"] = (
+#         (group["vw"] - group["val_price"])
+#         /
+#         group["val_price"]
+#     )
+
+#     group["value_area_position"] = (
+#         (
+#             group["vw"]
+#             - group["val_price"]
+#         )
+#         /
+#         (
+#             group["vah_price"]
+#             - group["val_price"]
+#         ).replace(
+#             0,
+#             np.nan
+#         )
+#     )
+
+#     return group
+
 def add_volume_profile_indicators(
     group,
     lookback=VOLUME_PROFILE_LOOKBACK
@@ -343,7 +405,17 @@ def add_volume_profile_indicators(
     group["vah_price"] = np.nan
     group["val_price"] = np.nan
 
-    for i in range(len(group)):
+    latest_day = (
+        group["trade_date"].max()
+    )
+
+    today_indexes = group.index[
+        group["trade_date"] == latest_day
+    ]
+
+    for idx in today_indexes:
+
+        i = group.index.get_loc(idx)
 
         window = group.iloc[
             max(0, i - lookback + 1):i + 1
@@ -355,28 +427,23 @@ def add_volume_profile_indicators(
             )
         )
 
-        idx = group.index[i]
-
         group.at[idx, "poc_price"] = poc
         group.at[idx, "vah_price"] = vah
         group.at[idx, "val_price"] = val
 
     group["distance_to_poc"] = (
         (group["vw"] - group["poc_price"])
-        /
-        group["poc_price"]
+        / group["poc_price"]
     )
 
     group["distance_to_vah"] = (
         (group["vw"] - group["vah_price"])
-        /
-        group["vah_price"]
+        / group["vah_price"]
     )
 
     group["distance_to_val"] = (
         (group["vw"] - group["val_price"])
-        /
-        group["val_price"]
+        / group["val_price"]
     )
 
     group["value_area_position"] = (
@@ -395,7 +462,6 @@ def add_volume_profile_indicators(
     )
 
     return group
-
 
 def calculate_adx(
     df,
