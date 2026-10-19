@@ -207,6 +207,8 @@ HORIZON_COLUMNS = [
 VOLUME_PROFILE_LOOKBACK = 200
 VOLUME_PROFILE_BINS = 100
 
+TICKER_BATCH_SIZE = 500
+
 def calculate_volume_profile(
     window_df,
     bins=VOLUME_PROFILE_BINS
@@ -1548,6 +1550,7 @@ def run_indicator_pipeline(
         )
     )
 
+
     for col in [
         "h",
         "l",
@@ -1566,195 +1569,238 @@ def run_indicator_pipeline(
         df.columns.tolist()
     )
 
-    result_df = (
-        calculate_indicators(
-            df
-        )
+    # Begin loop batch
+    ##############################
+
+    ticker_list = sorted(
+        df["ticker"].unique()
     )
 
-    if result_df.empty:
+
+
+    for batch_start in range(
+        0,
+        len(ticker_list),
+        TICKER_BATCH_SIZE
+    ):
+
+        batch_tickers = ticker_list[
+            batch_start:
+            batch_start + TICKER_BATCH_SIZE
+        ]
+
+        batch_df = df[
+            df["ticker"].isin(
+                batch_tickers
+            )
+        ]
 
         print(
-            "No indicator rows generated"
+            f"Processing batch "
+            f"{batch_start // TICKER_BATCH_SIZE + 1}"
         )
 
-        return
 
-    print("OUTPUT")
-    print(
-        result_df.columns.tolist()
-    )
-
-    min_t = int(
-        result_df["t"].min()
-    )
-
-    max_t = int(
-        result_df["t"].max()
-    )
-
-    existing_sql = f"""
-        SELECT
-            ticker,
-            t
-        FROM raw.{target_table}
-        WHERE t BETWEEN {min_t}
-        AND {max_t}
-    """
-
-    try:
-
-        existing_rows = (
-            select_to_json(
-                engine,
-                existing_sql,
-                params={}
-            )
-        )
-
-    except Exception:
-
-        print(
-            f"{target_table} "
-            f"does not exist yet"
-        )
-
-        existing_rows = []
-
-    if existing_rows:
-
-        existing_df = (
-            pd.DataFrame(
-                existing_rows
-            )
-        )
-
-        before_count = len(
-            result_df
-        )
-
+        # result_df = (
+        #     calculate_indicators(
+        #         df
+        #     )
+        # )
         result_df = (
-            result_df
-            .merge(
-                existing_df[
-                    [
+            calculate_indicators(
+                batch_df
+            )
+        )
+
+
+        if result_df.empty:
+
+            print(
+                "No indicator rows generated"
+            )
+
+            # return
+            continue
+
+        print("OUTPUT")
+        print(
+            result_df.columns.tolist()
+        )
+
+        min_t = int(
+            result_df["t"].min()
+        )
+
+        max_t = int(
+            result_df["t"].max()
+        )
+
+        existing_sql = f"""
+            SELECT
+                ticker,
+                t
+            FROM raw.{target_table}
+            WHERE t BETWEEN {min_t}
+            AND {max_t}
+        """
+
+        try:
+
+            existing_rows = (
+                select_to_json(
+                    engine,
+                    existing_sql,
+                    params={}
+                )
+            )
+
+        except Exception:
+
+            print(
+                f"{target_table} "
+                f"does not exist yet"
+            )
+
+            existing_rows = []
+
+        if existing_rows:
+
+            existing_df = (
+                pd.DataFrame(
+                    existing_rows
+                )
+            )
+
+            before_count = len(
+                result_df
+            )
+
+            result_df = (
+                result_df
+                .merge(
+                    existing_df[
+                        [
+                            "ticker",
+                            "t"
+                        ]
+                    ],
+                    on=[
                         "ticker",
                         "t"
-                    ]
-                ],
-                on=[
-                    "ticker",
-                    "t"
-                ],
-                how="left",
-                indicator=True
+                    ],
+                    how="left",
+                    indicator=True
+                )
             )
-        )
+
+            result_df = (
+                result_df[
+                    result_df["_merge"]
+                    == "left_only"
+                ]
+                .drop(
+                    columns="_merge"
+                )
+            )
+
+            print(
+                f"Removed "
+                f"{before_count - len(result_df)} "
+                f"existing rows"
+            )
+
+        if result_df.empty:
+
+            print(
+                "No new rows remaining"
+            )
+
+            # return
+            continue
 
         result_df = (
             result_df[
-                result_df["_merge"]
-                == "left_only"
+                COLUMNS_TO_KEEP
             ]
-            .drop(
-                columns="_merge"
+            .replace(
+                {
+                    np.nan: None
+                }
             )
         )
 
+        records = (
+            result_df
+            .to_dict(
+                orient="records"
+            )
+        )
+
+        if not records:
+
+            print(
+                "No records generated"
+            )
+
+            # return
+            continue
+
+        schema_dict = (
+            get_schema_dict(
+                records
+            )
+        )
+
+        if "relative_strength" in schema_dict:
+
+            schema_dict[
+                "relative_strength"
+            ] = Decimal("0")
+
+        if "sector_strength" in schema_dict:
+
+            schema_dict[
+                "sector_strength"
+            ] = Decimal("0")
+
+        if "news_sentiment" in schema_dict:
+
+            schema_dict[
+                "news_sentiment"
+            ] = Decimal("0")
+
+        ensure_schema_and_table(
+            engine,
+            "raw",
+            target_table,
+            schema_dict,
+            None,
+            False,
+            False
+        )
+
         print(
-            f"Removed "
-            f"{before_count - len(result_df)} "
-            f"existing rows"
+            f"Upserting "
+            f"{len(records)} "
+            f"records into "
+            f"{target_table}"
         )
 
-    if result_df.empty:
-
-        print(
-            "No new rows remaining"
+        store_dicts_into_table(
+            engine,
+            records,
+            "raw",
+            target_table,
+            upsert=True,
+            ignore_keys=set(),
+            use_bulk=True,
+            conflict_cols=[
+                "ticker",
+                "t"
+            ]
         )
-
-        return
-
-    result_df = (
-        result_df[
-            COLUMNS_TO_KEEP
-        ]
-        .replace(
-            {
-                np.nan: None
-            }
-        )
-    )
-
-    records = (
-        result_df
-        .to_dict(
-            orient="records"
-        )
-    )
-
-    if not records:
-
-        print(
-            "No records generated"
-        )
-
-        return
-
-    schema_dict = (
-        get_schema_dict(
-            records
-        )
-    )
-
-    if "relative_strength" in schema_dict:
-
-        schema_dict[
-            "relative_strength"
-        ] = Decimal("0")
-
-    if "sector_strength" in schema_dict:
-
-        schema_dict[
-            "sector_strength"
-        ] = Decimal("0")
-
-    if "news_sentiment" in schema_dict:
-
-        schema_dict[
-            "news_sentiment"
-        ] = Decimal("0")
-
-    ensure_schema_and_table(
-        engine,
-        "raw",
-        target_table,
-        schema_dict,
-        None,
-        False,
-        False
-    )
-
-    print(
-        f"Upserting "
-        f"{len(records)} "
-        f"records into "
-        f"{target_table}"
-    )
-
-    store_dicts_into_table(
-        engine,
-        records,
-        "raw",
-        target_table,
-        upsert=True,
-        ignore_keys=set(),
-        use_bulk=True,
-        conflict_cols=[
-            "ticker",
-            "t"
-        ]
-    )
+    # Einde loop batch
+    ##############################
 
     print(
         "Finished"
