@@ -1595,11 +1595,39 @@ def run_indicator_pipeline(
             )
         ]
 
-        print(
-            f"Processing batch "
-            f"{batch_start // TICKER_BATCH_SIZE + 1}"
+        # print(
+        #     f"Processing batch "
+        #     f"{batch_start // TICKER_BATCH_SIZE + 1}"
+        # )
+
+
+        total_batches = (
+            (len(ticker_list) + TICKER_BATCH_SIZE - 1)
+            // TICKER_BATCH_SIZE
         )
 
+        batch_number = (
+            batch_start // TICKER_BATCH_SIZE + 1
+        )
+
+        print(
+            f"Processing batch "
+            f"{batch_number}/{total_batches}"
+        )
+
+        print(
+            f"Ticker range: "
+            f"{batch_tickers[0]} -> "
+            f"{batch_tickers[-1]}"
+        )
+
+        print(
+            f"Tickers: {len(batch_tickers)}"
+        )
+
+        print(
+            f"Rows: {len(batch_df)}"
+        )
 
         # result_df = (
         #     calculate_indicators(
