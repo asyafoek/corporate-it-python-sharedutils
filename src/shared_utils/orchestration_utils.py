@@ -153,6 +153,11 @@ class DataFlow:
         self.status = "ABORTED"
         self.finish_timestamp = datetime.now(timezone.utc)
 
+    def rejected(self):
+
+        self.status = "REJECTED"
+        self.finish_timestamp = datetime.now(timezone.utc)
+
     def completed(self):
 
         self.status = "COMPLETED"
