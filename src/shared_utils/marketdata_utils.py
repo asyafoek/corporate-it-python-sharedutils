@@ -3680,29 +3680,16 @@ def get_profile_account(
 ):
     sql = """
     SELECT
-        p.profile_identity,
-        p.trading_mode,
-        p.market,
-        p.strategy_trading_side,
-        p.strategy_trading_horizon,
-        p.strategy_minimum_trend_strength,
-        p.strategy_minimum_traded_volume,
-        p.strategy_minimum_relative_volume,
-        p.strategy_minimum_volume_weighted_price,
-        p.strategy_minimum_signal_strength,
-        p.strategy_position_management_trading_capital,
-        p.strategy_position_management_max_concurrent_trades,
-        p.strategy_position_management_max_trades_per_ticker,
-        p.strategy_position_management_max_trades_per_day,
-        p.strategy_position_management_min_correlation_group_threshold,
-        p.strategy_position_management_max_correlation_group_strength,
-        p.strategy_position_management_max_trades_per_correlation_group,
-        p.strategy_session_scopes,
-        p.strategy_holding_policy_min_holding_period,
-        p.strategy_holding_policy_min_holding_unit,
-        p.strategy_holding_policy_max_holding_period,
-        p.strategy_holding_policy_max_holding_unit,            
-        a.*
+        p.*,
+
+        a.broker_name,
+        a.account_mode,
+        a.asset_class,
+        a.enabled AS account_enabled,
+        a.secrets,
+        a.asset_long_format,
+        a.asset_short_format,
+        a.base_url
 
     FROM raw.idts_all_application_profiles_persisted_1 p
 
@@ -3710,8 +3697,8 @@ def get_profile_account(
         ON p.profile_name = a.profile_name
 
     WHERE p.profile_name = :profile_name
-      AND p.enabled = true
-      AND a.enabled = true
+    AND p.enabled = true
+    AND a.enabled = true
 
     LIMIT 1
     """
