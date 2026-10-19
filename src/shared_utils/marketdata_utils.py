@@ -3656,9 +3656,9 @@ def get_profile_configurations(
         ON p.profile_name = r.profile_name
 
     WHERE p.profile_name = :profile_name
-      AND p.enabled = true
-      AND r.enabled = true
     """
+    #   AND p.enabled = true
+    #   AND r.enabled = true
 
     rows = select_to_json(
         engine,
