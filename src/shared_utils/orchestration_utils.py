@@ -853,7 +853,7 @@ def main():
     )
 
     flow.add_step(
-        "position_open",
+        "position_opened",
         {
             "secrets": f"{broker_name.lower()}-paper-credentials",
             "broker": f"{broker_name}",
@@ -867,7 +867,7 @@ def main():
     )
 
     flow.add_step(
-        "trade_close",
+        "trade_closed",
         {
             "secrets": f"{broker_name.lower()}-paper-credentials",
             "client_order_id": "550e8400-e29b-41d4-a716-446655440000",

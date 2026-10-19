@@ -30,10 +30,10 @@ idts_all_market_dataflow_steps_persisted_1
     - name: trade_open
       payload: ...
       timestamp: ...
-    - name: position_open
+    - name: position_opened
       payload: ...
       timestamp: ...
-    - name: trade_close
+    - name: trade_closed
       payload: ...
       timestamp: ...
     - name: position_close
@@ -60,7 +60,7 @@ Profits:
 - Gross Profit - Broker Fees - Exchange Fees - Regulatory Fees - Funding Fees (crypto/futures) = Net Profit
 
 Time duration:
-position_open.timestamp - position_close.timestamp = holding time
+position_opened.timestamp - position_closed.timestamp = holding time
 
 net_profit > 0 = Winner
 

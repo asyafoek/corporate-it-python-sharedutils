@@ -4495,3 +4495,23 @@ def calculate_kelly_position_size(
 
     return kelly_size, kelly_capital
 
+
+def build_symbol_lookup_key(
+    *,
+    market: str,
+    broker_name: str,
+    account_mode: str,
+    profile_identity: int,
+    symbol: str,
+    side: str,
+) -> str:
+    return "|".join(
+        [
+            market,
+            broker_name,
+            account_mode,
+            str(profile_identity),
+            symbol,
+            side,
+        ]
+    )

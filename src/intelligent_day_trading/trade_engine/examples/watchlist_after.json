@@ -104,7 +104,7 @@
                 }
             },
             {
-                "name": "position_open",
+                "name": "position_opened",
                 "timestamp": "20260826T08:03:54+02:00",
                 "payload": {
                     "position": {
@@ -120,7 +120,7 @@
                 }
             },
             {
-                "name": "trade_close",
+                "name": "trade_closed",
                 "timestamp": "20260826T08:03:54+02:00",
                 "payload": {
                     "order": {
