@@ -1422,8 +1422,8 @@ def calculate_indicators(
                 )
             ],
             [
-                "BULL",
-                "BEAR"
+                "BULLISH",
+                "BEARISH"
             ],
             default="SIDEWAYS"
         )
@@ -2005,7 +2005,7 @@ def calculate_horizon_scores(
         work["volatility_regime"].isin(
             [
                 "VOLATILE",
-                "HIGH"
+                "QUIET"
             ]
         ),
         20,
@@ -2015,8 +2015,8 @@ def calculate_horizon_scores(
     work["scalping_score"] += np.where(
         work["trend_regime"].isin(
             [
-                "BULL",
-                "BEAR"
+                "BULLISH",
+                "BEARISH"
             ]
         ),
         10,
@@ -2061,8 +2061,8 @@ def calculate_horizon_scores(
     work["intraday_score"] += np.where(
         work["trend_regime"].isin(
             [
-                "BULL",
-                "BEAR"
+                "BULLISH",
+                "BEARISH"
             ]
         ),
         10,
@@ -2087,8 +2087,8 @@ def calculate_horizon_scores(
     work["swing_score"] += np.where(
         work["trend_regime"].isin(
             [
-                "BULL",
-                "BEAR"
+                "BULLISH",
+                "BEARISH"
             ]
         ),
         25,
@@ -2099,7 +2099,7 @@ def calculate_horizon_scores(
         work["volatility_regime"].isin(
             [
                 "VOLATILE",
-                "HIGH"
+                "QUIET"
             ]
         ),
         5,
@@ -2130,8 +2130,8 @@ def calculate_horizon_scores(
     work["position_score"] += np.where(
         work["trend_regime"].isin(
             [
-                "BULL",
-                "BEAR"
+                "BULLISH",
+                "BEARISH"
             ]
         ),
         30,
@@ -2142,7 +2142,7 @@ def calculate_horizon_scores(
         work["volatility_regime"].isin(
             [
                 "VOLATILE",
-                "HIGH"
+                "QUIET"
             ]
         ),
         10,
@@ -2173,8 +2173,8 @@ def calculate_horizon_scores(
     work["investment_score"] += np.where(
         work["trend_regime"].isin(
             [
-                "BULL",
-                "BEAR"
+                "BULLISH",
+                "BEARISH"
             ]
         ),
         25,
@@ -2185,7 +2185,7 @@ def calculate_horizon_scores(
         work["volatility_regime"].isin(
             [
                 "VOLATILE",
-                "HIGH"
+                "QUIET"
             ]
         ),
         15,
@@ -2525,7 +2525,7 @@ def calculate_watch_setups(
 
     work["momentum_score"] += np.where(
         work["trend_regime"].isin(
-            ["BULL", "BEAR"]
+            ["BULLISH", "BEARISH"]
         ),
         20,
         0
@@ -2549,7 +2549,7 @@ def calculate_watch_setups(
 
     work["pullback_score"] = np.where(
         work["trend_regime"].isin(
-            ["BULL", "BEAR"]
+            ["BULLISH", "BEARISH"]
         ),
         35,
         0
@@ -2693,7 +2693,7 @@ def calculate_watch_setups(
 
     work["trend_continuation_score"] = np.where(
         work["trend_regime"].isin(
-            ["BULL", "BEAR"]
+            ["BULLISH", "BEARISH"]
         ),
         40,
         0
@@ -2708,7 +2708,7 @@ def calculate_watch_setups(
         (
             (work["ema20"] > work["ema50"])
             &
-            (work["trend_regime"] == "BULL")
+            (work["trend_regime"] == "BULLISH")
         ),
         20,
         0
@@ -2718,7 +2718,7 @@ def calculate_watch_setups(
         (
             (work["ema20"] < work["ema50"])
             &
-            (work["trend_regime"] == "BEAR")
+            (work["trend_regime"] == "BEARISH")
         ),
         20,
         0
