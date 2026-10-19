@@ -47,7 +47,7 @@ from datetime import (
 INDICATOR_WARMUP_BARS = 250
 
 # ROWS_PER_TICKER = 672
-ROWS_PER_TICKER = INDICATOR_WARMUP_BARS + 25
+ROWS_PER_TICKER = INDICATOR_WARMUP_BARS
 
 ATR_PERIOD = 96
 ATR10_PERIOD = 10
@@ -210,7 +210,7 @@ VOLUME_PROFILE_LOOKBACK = 26
 # VOLUME_PROFILE_BINS = 100
 VOLUME_PROFILE_BINS = 26
 
-TICKER_BATCH_SIZE = 500
+TICKER_BATCH_SIZE = 1000
 
 def calculate_volume_profile(
     window_df,
@@ -242,25 +242,43 @@ def calculate_volume_profile(
         bins
     )
 
-    for _, row in window_df.iterrows():
+    # for _, row in window_df.iterrows():
 
-        bucket = np.searchsorted(
-            bucket_edges,
-            row["vw"],
-            side="right"
-        ) - 1
+    #     bucket = np.searchsorted(
+    #         bucket_edges,
+    #         row["vw"],
+    #         side="right"
+    #     ) - 1
 
-        bucket = max(
-            0,
-            min(
-                bucket,
-                bins - 1
-            )
-        )
+    #     bucket = max(
+    #         0,
+    #         min(
+    #             bucket,
+    #             bins - 1
+    #         )
+    #     )
 
-        volume_per_bucket[
-            bucket
-        ] += row["v"]
+    #     volume_per_bucket[
+    #         bucket
+    #     ] += row["v"]
+
+    buckets = np.searchsorted(
+        bucket_edges,
+        window_df["vw"].values,
+        side="right"
+    ) - 1
+
+    buckets = np.clip(
+        buckets,
+        0,
+        bins - 1
+    )
+
+    np.add.at(
+        volume_per_bucket,
+        buckets,
+        window_df["v"].values
+    )
 
     poc_idx = np.argmax(
         volume_per_bucket
