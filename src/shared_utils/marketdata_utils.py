@@ -3724,7 +3724,7 @@ def get_broker_symbol_mapping(
     position_side,
 ):
     sql = """
-    SELECT symbol
+    SELECT symbol, fractionable
     FROM raw.idts_all_reference_brokersymbols_persisted_1
     WHERE broker_name = :broker_name
       AND account_mode = :account_mode
@@ -3748,7 +3748,7 @@ def get_broker_symbol_mapping(
     if not rows:
         return None
 
-    return rows[0]["symbol"]
+    return rows[0]["symbol"], rows[0]["fractionable"]
 
 def get_symbol_for_ticker(
     engine,
@@ -3809,7 +3809,7 @@ def get_symbol_for_ticker(
         symbol = ticker
 
         sql = """
-        SELECT 1
+        SELECT symbol, fractionable
         FROM raw.alpaca_stocks_market_tickers_persisted_1
         WHERE symbol = :symbol
         LIMIT 1
@@ -3823,8 +3823,7 @@ def get_symbol_for_ticker(
             }
         )
 
-        if rows:
-            return symbol
+        return rows[0]["symbol"], rows[0]["fractionable"]
 
         return get_broker_symbol_mapping(
             engine,
@@ -3882,7 +3881,7 @@ def get_symbol_for_ticker(
         """
 
     else:
-        return symbol
+        return symbol, True
 
     rows = select_to_json(
         engine,
@@ -3893,7 +3892,7 @@ def get_symbol_for_ticker(
     )
 
     if rows:
-        return symbol
+        return symbol, True
 
     return get_broker_symbol_mapping(
         engine,
@@ -4387,9 +4386,6 @@ def calculate_risk_reward_ratio(
     )
 
 
-
-from math import floor
-
 def calculate_standard_position_size(
     starting_capital,
     max_risk_per_trade_percentage,
@@ -4427,12 +4423,22 @@ def calculate_standard_position_size(
     #     stop_loss_distance
     # )
 
-    risk_size = floor(
+    # risk_size = floor(
+    #     max_risk_per_trade /
+    #     stop_loss_distance
+    # )
+
+    risk_size = (
         max_risk_per_trade /
         stop_loss_distance
     )
 
-    capital_size = floor(
+    # capital_size = floor(
+    #     capital_per_trade /
+    #     entry
+    # )
+
+    capital_size = (
         capital_per_trade /
         entry
     )
