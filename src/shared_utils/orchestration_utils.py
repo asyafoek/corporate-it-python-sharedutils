@@ -163,6 +163,11 @@ class DataFlow:
         self.status = "COMPLETED"
         self.finish_timestamp = datetime.now(timezone.utc)
 
+    def skipped(self):
+
+        self.status = "SKIPPED"
+        self.finish_timestamp = datetime.now(timezone.utc)
+
     def success(self):
 
         self.status = "SUCCESS"
@@ -557,10 +562,27 @@ class DataFlow:
 
             # alle steps opnieuw schrijven
 
-            conn.execute(
+            # conn.execute(
+            #     text(
+            #         f"""
+            #         DELETE
+            #         FROM {self.schema_name}.{self.step_table_name}
+            #         WHERE external_reference_id =
+            #             :external_reference_id
+            #         """
+            #     ),
+            #     {
+            #         "external_reference_id":
+            #             self.external_reference_id,
+            #     },
+            # )
+
+            existing_steps = conn.execute(
                 text(
                     f"""
-                    DELETE
+                    SELECT
+                        step_name,
+                        event_timestamp
                     FROM {self.schema_name}.{self.step_table_name}
                     WHERE external_reference_id =
                         :external_reference_id
@@ -570,9 +592,52 @@ class DataFlow:
                     "external_reference_id":
                         self.external_reference_id,
                 },
-            )
+            ).mappings().all()
+
+            existing_lookup = {
+                row["step_name"]
+                for row in existing_steps
+            }            
+
+            # for step in self.steps:
+
+            #     conn.execute(
+            #         text(
+            #             f"""
+            #             INSERT INTO {self.schema_name}.{self.step_table_name}
+            #             (
+            #                 external_reference_id,
+            #                 step_name,
+            #                 event_timestamp,
+            #                 payload_json
+            #             )
+            #             VALUES
+            #             (
+            #                 :external_reference_id,
+            #                 :step_name,
+            #                 :event_timestamp,
+            #                 CAST(:payload_json AS JSONB)
+            #             )
+            #             """
+            #         ),
+            #         {
+            #             "external_reference_id":
+            #                 self.external_reference_id,
+            #             "step_name":
+            #                 step["step_name"],
+            #             "event_timestamp":
+            #                 step["event_timestamp"],
+            #             "payload_json":
+            #                 json.dumps(step["payload"]),
+            #         },
+            #     )
 
             for step in self.steps:
+
+                step_key = step["step_name"]
+
+                if step_key in existing_lookup:
+                    continue
 
                 conn.execute(
                     text(
