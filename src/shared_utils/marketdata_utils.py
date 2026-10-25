@@ -3821,7 +3821,8 @@ def get_symbol_for_ticker(
             }
         )
 
-        return rows[0]["symbol"], rows[0]["fractionable"]
+        if rows and len(rows)>0:
+            return rows[0]["symbol"], rows[0]["fractionable"]
 
         return get_broker_symbol_mapping(
             engine,
@@ -3900,6 +3901,219 @@ def get_symbol_for_ticker(
         position_side,
     )
 
+
+def format_to_regex(
+    symbol_format,
+):
+    pattern = re.escape(
+        symbol_format
+    )
+
+    pattern = pattern.replace(
+        r"\{base_asset\}",
+        r"(?P<base_asset>[A-Z0-9]+)"
+    )
+
+    pattern = pattern.replace(
+        r"\{quote\}",
+        r"(?P<quote>[A-Z0-9]+)"
+    )
+
+    return f"^{pattern}$"
+
+
+def translate_symbol_to_massive_ticker(
+    symbol,
+    symbol_format,
+):
+    pattern = format_to_regex(
+        symbol_format
+    )
+
+    match = re.match(
+        pattern,
+        symbol,
+    )
+
+    if not match:
+        return None
+
+    values = match.groupdict()
+
+    base_asset = values.get(
+        "base_asset"
+    )
+
+    quote = values.get(
+        "quote"
+    )
+
+    #
+    # Crypto
+    #
+    if quote:
+        return (
+            f"X:{base_asset}"
+            f"{quote}"
+        )
+
+    #
+    # Stocks
+    #
+    return base_asset
+
+
+def ticker_exists(
+    engine,
+    asset_class,
+    ticker,
+):
+    if (
+        asset_class.lower()
+        == "stocks"
+    ):
+        sql = """
+        SELECT 1
+        FROM raw.massive_stocks_market_tickers_persisted_1
+        WHERE ticker = :ticker
+        LIMIT 1
+        """
+    else:
+        sql = """
+        SELECT 1
+        FROM raw.massive_crypto_market_tickers_persisted_1
+        WHERE ticker = :ticker
+        LIMIT 1
+        """
+
+    rows = select_to_json(
+        engine,
+        sql,
+        {
+            "ticker": ticker
+        }
+    )
+
+    return len(rows) > 0
+
+
+def get_ticker_from_broker_mapping(
+    engine,
+    broker_name,
+    account_mode,
+    symbol,
+    position_side,
+):
+    sql = """
+    SELECT ticker
+    FROM raw.idts_all_reference_brokersymbols_persisted_1
+    WHERE broker_name = :broker_name
+      AND account_mode = :account_mode
+      AND symbol = :symbol
+      AND position_side = :position_side
+      AND enabled = true
+    LIMIT 1
+    """
+
+    rows = select_to_json(
+        engine,
+        sql,
+        {
+            "broker_name": broker_name,
+            "account_mode": account_mode,
+            "symbol": symbol,
+            "position_side": position_side,
+        }
+    )
+
+    if not rows:
+        return None
+
+    return rows[0]["ticker"]
+
+
+def get_ticker_for_symbol(
+    engine,
+    broker_name,
+    account_mode,
+    symbol,
+    position_side,
+):
+    sql = """
+    SELECT
+        asset_class,
+        asset_long_format,
+        asset_short_format
+    FROM raw.idts_all_application_accounts_persisted_1
+    WHERE broker_name = :broker_name
+      AND account_mode = :account_mode
+    LIMIT 1
+    """
+
+    rows = select_to_json(
+        engine,
+        sql,
+        {
+            "broker_name": broker_name,
+            "account_mode": account_mode
+        }
+    )
+
+    if not rows or len(rows)==0:
+        return get_ticker_from_broker_mapping(
+            engine,
+            broker_name,
+            account_mode,
+            symbol,
+            position_side,
+        )
+
+    account = rows[0]
+
+    asset_class = (
+        account.get(
+            "asset_class"
+        )
+        or ""
+    )
+
+    symbol_format = (
+        account["asset_long_format"]
+        if position_side == "Long"
+        else account["asset_short_format"]
+    )
+
+    #
+    # 1. Broker symbol -> Massive candidate
+    #
+    ticker = (
+        translate_symbol_to_massive_ticker(
+            symbol,
+            symbol_format,
+        )
+    )
+
+    #
+    # 2. Check if candidate exists
+    #
+    if ticker:
+        if ticker_exists(
+            engine,
+            asset_class,
+            ticker,
+        ):
+            return ticker
+
+    #
+    # 3. Fallback to custom mapping
+    #
+    return get_ticker_from_broker_mapping(
+        engine,
+        broker_name,
+        account_mode,
+        symbol,
+        position_side,
+    )
 
 def get_positions_for_symbol(
     engine,
