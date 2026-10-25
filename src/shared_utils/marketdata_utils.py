@@ -3697,8 +3697,6 @@ def get_profile_account(
         ON p.profile_name = a.profile_name
 
     WHERE p.profile_name = :profile_name
-    AND p.enabled = true
-    AND a.enabled = true
 
     LIMIT 1
     """
