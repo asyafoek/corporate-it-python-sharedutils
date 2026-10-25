@@ -3744,7 +3744,7 @@ def get_broker_symbol_mapping(
     )
 
     if not rows:
-        return None
+        return None, None
 
     return rows[0]["symbol"], rows[0]["fractionable"]
 
@@ -4729,7 +4729,7 @@ def build_symbol_lookup_key(
             broker_name,
             account_mode,
             str(profile_identity),
-            symbol,
+            str(symbol),
             side,
         ]
     )
