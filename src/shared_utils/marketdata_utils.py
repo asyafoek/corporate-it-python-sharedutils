@@ -4761,3 +4761,145 @@ def build_symbol_position_lookup_key(
             symbol,
         ]
     )
+
+def calculate_correlations(
+    engine,
+    schema_name: str,
+    table_name: str,
+    symbol: str,
+    compare_symbols: list[str],
+    lookback_bars: int = 120,
+):
+    symbols = sorted(
+        set(
+            [symbol] +
+            compare_symbols
+        )
+    )
+
+    sql = f"""
+    WITH ranked_bars AS (
+        SELECT
+            ticker,
+            t,
+            c,
+            ROW_NUMBER() OVER (
+                PARTITION BY ticker
+                ORDER BY t DESC
+            ) AS rn
+        FROM {schema_name}.{table_name}
+        WHERE ticker = ANY(:symbols)
+    )
+    SELECT
+        ticker,
+        t,
+        c
+    FROM ranked_bars
+    WHERE rn <= :lookback_bars
+    ORDER BY ticker, t
+    """
+
+    rows = select_to_json(
+        engine,
+        sql,
+        {
+            "symbols": symbols,
+            "lookback_bars": lookback_bars,
+        },
+    )
+
+    if not rows:
+        return {
+            "highest_correlation": 0,
+            "highest_correlation_percentage": 0,
+            "highest_correlation_symbol": None,
+            "correlations": [],
+        }
+
+    df = pd.DataFrame(rows)
+
+    pivot = (
+        df
+        .pivot(
+            index="t",
+            columns="ticker",
+            values="c",
+        )
+        .sort_index()
+        .pct_change()
+        .dropna()
+    )
+
+    if symbol not in pivot.columns:
+        return {
+            "highest_correlation": 0,
+            "highest_correlation_percentage": 0,
+            "highest_correlation_symbol": None,
+            "correlations": [],
+        }
+
+    correlations = []
+
+    highest_correlation = 0
+    highest_correlation_symbol = None
+
+    for compare_symbol in compare_symbols:
+
+        if compare_symbol == symbol:
+            continue
+
+        if compare_symbol not in pivot.columns:
+            continue
+
+        correlation = float(
+            pivot[symbol].corr(
+                pivot[compare_symbol]
+            )
+        )
+
+        if pd.isna(correlation):
+            continue
+
+        correlation_percentage = round(
+            abs(correlation) * 100,
+            2,
+        )
+
+        correlations.append(
+            {
+                "symbol": compare_symbol,
+                "correlation": round(
+                    correlation,
+                    4,
+                ),
+                "correlation_percentage": correlation_percentage,
+            }
+        )
+
+        if (
+            highest_correlation_symbol is None
+            or abs(correlation) > abs(highest_correlation)
+        ):
+            highest_correlation = correlation
+            highest_correlation_symbol = compare_symbol
+
+    correlations.sort(
+        key=lambda x: x["correlation_percentage"],
+        reverse=True,
+    )
+
+    return {
+        "highest_correlation": round(
+            highest_correlation,
+            4,
+        ),
+        "highest_correlation_percentage": round(
+            abs(highest_correlation) * 100,
+            2,
+        ),
+        "highest_correlation_symbol": (
+            highest_correlation_symbol
+        ),
+        "correlations": correlations,
+    }
+
