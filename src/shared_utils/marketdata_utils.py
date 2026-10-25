@@ -4600,8 +4600,8 @@ def calculate_risk_reward_ratio(
 
 def calculate_standard_position_size(
     starting_capital,
-    max_risk_per_trade_percentage,
     max_concurrent_trades,
+    max_risk_per_trade_percentage,
     atr,
     atr_multiplier,
     entry
@@ -4673,12 +4673,12 @@ def calculate_standard_position_size(
 
 def calculate_kelly_position_size(
     starting_capital,
+    max_concurrent_trades,
     risk_reward_ratio,
     expected_win_rate,
     fractional_kelly,
     entry
 ):
-
 
     if (
         risk_reward_ratio <= 0
@@ -4701,10 +4701,20 @@ def calculate_kelly_position_size(
         fractional_kelly
     )
 
+    capital_per_trade = (
+        starting_capital /
+        max_concurrent_trades
+    )
+
     kelly_capital = (
-        starting_capital *
+        capital_per_trade *
         fractional_kelly_position
     )
+
+    # kelly_capital = (
+    #     starting_capital *
+    #     fractional_kelly_position
+    # )
 
     kelly_size = floor(
         kelly_capital /
