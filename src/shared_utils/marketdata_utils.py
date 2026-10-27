@@ -4762,12 +4762,14 @@ def build_symbol_position_lookup_key(
         ]
     )
 
+
 def calculate_correlations(
     engine,
     schema_name: str,
     table_name: str,
     symbol: str,
     compare_symbols: list[str],
+    correlation_group_threshold: float,
     lookback_bars: int = 120,
 ):
     symbols = sorted(
@@ -4810,10 +4812,10 @@ def calculate_correlations(
 
     if not rows:
         return {
-            "highest_correlation": 0,
-            "highest_correlation_percentage": 0,
-            "highest_correlation_symbol": None,
-            "correlations": [],
+            "symbol": symbol,
+            "correlation_group_threshold": correlation_group_threshold,
+            "correlated_symbols": [],
+            "all_correlations": [],
         }
 
     df = pd.DataFrame(rows)
@@ -4832,16 +4834,14 @@ def calculate_correlations(
 
     if symbol not in pivot.columns:
         return {
-            "highest_correlation": 0,
-            "highest_correlation_percentage": 0,
-            "highest_correlation_symbol": None,
-            "correlations": [],
+            "symbol": symbol,
+            "correlation_group_threshold": correlation_group_threshold,
+            "correlated_symbols": [],
+            "all_correlations": [],
         }
 
-    correlations = []
-
-    highest_correlation = 0
-    highest_correlation_symbol = None
+    correlated_symbols = []
+    all_correlations = []
 
     for compare_symbol in compare_symbols:
 
@@ -4865,41 +4865,33 @@ def calculate_correlations(
             2,
         )
 
-        correlations.append(
-            {
-                "symbol": compare_symbol,
-                "correlation": round(
-                    correlation,
-                    4,
-                ),
-                "correlation_percentage": correlation_percentage,
-            }
-        )
+        result = {
+            "symbol": compare_symbol,
+            "correlation": round(
+                correlation,
+                4,
+            ),
+            "correlation_percentage": correlation_percentage,
+        }
 
-        if (
-            highest_correlation_symbol is None
-            or abs(correlation) > abs(highest_correlation)
-        ):
-            highest_correlation = correlation
-            highest_correlation_symbol = compare_symbol
+        all_correlations.append(result)
 
-    correlations.sort(
+        if abs(correlation) >= correlation_group_threshold:
+            correlated_symbols.append(result)
+
+    all_correlations.sort(
+        key=lambda x: x["correlation_percentage"],
+        reverse=True,
+    )
+
+    correlated_symbols.sort(
         key=lambda x: x["correlation_percentage"],
         reverse=True,
     )
 
     return {
-        "highest_correlation": round(
-            highest_correlation,
-            4,
-        ),
-        "highest_correlation_percentage": round(
-            abs(highest_correlation) * 100,
-            2,
-        ),
-        "highest_correlation_symbol": (
-            highest_correlation_symbol
-        ),
-        "correlations": correlations,
+        "symbol": symbol,
+        "correlation_group_threshold": correlation_group_threshold,
+        "correlated_symbols": correlated_symbols,
+        "all_correlations": all_correlations,
     }
-
