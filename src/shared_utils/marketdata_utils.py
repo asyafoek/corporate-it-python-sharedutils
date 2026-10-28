@@ -10,6 +10,8 @@ from decimal import Decimal
 from sqlalchemy import text
 from zoneinfo import ZoneInfo
 
+
+
 from datetime import (
     datetime,
     UTC,
@@ -4901,3 +4903,72 @@ def calculate_correlations(
         "correlated_symbols": correlated_symbols,
         "all_correlations": all_correlations,
     }
+
+
+
+def get_market_details(
+    engine,
+):
+    sql = """
+    SELECT
+        *
+    FROM raw.idts_all_reference_markets_persisted_1
+    """
+
+    rows = select_to_json(
+        engine,
+        sql,
+        {}
+    )
+
+    return rows or []
+
+
+
+def get_session_scope(
+    market_hours_sessions,
+    timestamp_value,
+):
+    timestamp_utc = datetime.fromtimestamp(
+        timestamp_value / 1000,
+        UTC
+    )
+
+    for session in market_hours_sessions:
+
+        timezone = ZoneInfo(
+            session["timezone"]
+        )
+
+        timestamp_local = (
+            timestamp_utc.astimezone(
+                timezone
+            )
+        )
+
+        current_time = (
+            timestamp_local.time()
+        )
+
+        start_time = datetime.strptime(
+            session["start"],
+            "%H:%M:%S"
+        ).time()
+
+        end_time = datetime.strptime(
+            session["end"],
+            "%H:%M:%S"
+        ).time()
+
+        if (
+            start_time
+            <= current_time
+            <= end_time
+        ):
+            return session[
+                "session_scope"
+            ]
+
+    return None
+
+
