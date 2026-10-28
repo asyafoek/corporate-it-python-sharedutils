@@ -3687,8 +3687,10 @@ def get_profile_account(
         a.asset_class,
         a.enabled AS account_enabled,
         a.secrets,
-        a.asset_long_format,
-        a.asset_short_format,
+        a.long_asset_format,
+        a.long_instrument_type,
+        a.short_asset_format,
+        a.short_instrument_type,
         a.base_url
 
     FROM raw.idts_all_application_profiles_persisted_1 p
@@ -3760,8 +3762,10 @@ def get_symbol_for_ticker(
     sql = """
     SELECT
         asset_class,
-        asset_long_format,
-        asset_short_format
+        long_asset_format,
+        long_instrument_type,
+        short_asset_format,
+        short_instrument_type
     FROM raw.idts_all_application_accounts_persisted_1
     WHERE broker_name = :broker_name
       AND account_mode = :account_mode
@@ -3794,9 +3798,9 @@ def get_symbol_for_ticker(
     )
 
     symbol_format = (
-        account["asset_long_format"]
+        account["long_asset_format"]
         if position_side == "Long"
-        else account["asset_short_format"]
+        else account["short_asset_format"]
     )
 
     #
@@ -4042,8 +4046,10 @@ def get_ticker_for_symbol(
     sql = """
     SELECT
         asset_class,
-        asset_long_format,
-        asset_short_format
+        long_asset_format,
+        long_instrument_type,
+        short_asset_format,
+        short_instrument_type
     FROM raw.idts_all_application_accounts_persisted_1
     WHERE broker_name = :broker_name
       AND account_mode = :account_mode
@@ -4078,9 +4084,9 @@ def get_ticker_for_symbol(
     )
 
     symbol_format = (
-        account["asset_long_format"]
+        account["long_asset_format"]
         if position_side == "Long"
-        else account["asset_short_format"]
+        else account["short_asset_format"]
     )
 
     #
