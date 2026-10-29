@@ -19,7 +19,6 @@ class DataFlow:
         self,
         context: dict | None = None,
         external_reference_id: str | None = None,
-        external_correlation_id: str | None = None,
         lookup_key: str | None = None,
         context_table_name: str | None = None,
         schema_name: str | None = None,
@@ -30,9 +29,9 @@ class DataFlow:
             external_reference_id or str(uuid4())
         )
 
-        self.external_correlation_id = (
-            external_correlation_id
-        )
+        self.external_correlation_id = None
+
+        self.external_correlation_value = None
 
         self.lookup_key = lookup_key
 
@@ -260,9 +259,41 @@ class DataFlow:
             f"Unsupported retention value: {retention}"
         )
 
+
+    @property
+    def external_correlation_id(self) -> str | None:
+        return self._external_correlation_id
+
+    @external_correlation_id.setter
+    def external_correlation_id(
+        self,
+        value: str | None
+    ):
+        if value is None:
+            self._external_correlation_id = None
+            return
+
+        self._external_correlation_id = str(value)
+
+    @property
+    def external_correlation_value(self) -> float | None:
+        return self._external_correlation_value
+
+    @external_correlation_value.setter
+    def external_correlation_value(
+        self,
+        value: int | float | str | None
+    ):
+        if value is None:
+            self._external_correlation_value = None
+            return
+
+        self._external_correlation_value = float(value)
+
     @property
     def retention(self) -> str | None:
         return self._retention
+
 
     @retention.setter
     def retention(
@@ -304,6 +335,7 @@ class DataFlow:
 
         print(f"external_reference_id : {self.external_reference_id}")
         print(f"external_correlation_id : {self.external_correlation_id}")
+        print(f"external_correlation_value : {self.external_correlation_value}")
         print(f"lookup_key : {self.lookup_key}")
         print(f"status                : {self.status}")
         print(f"start_timestamp        : {self.start_timestamp}")
@@ -331,6 +363,7 @@ class DataFlow:
         return {
             "external_reference_id": self.external_reference_id,
             "external_correlation_id": self.external_correlation_id,
+            "external_correlation_value": self.external_correlation_value,
             "lookup_key": self.lookup_key,
             "status": self.status,
             "start_timestamp": self.start_timestamp.isoformat(),
@@ -366,11 +399,11 @@ class DataFlow:
             external_reference_id=data.get(
                 "external_reference_id"
             ),
-            external_correlation_id=data.get(
-                "external_correlation_id"
-            ),
             lookup_key=data.get("lookup_key"),
         )
+
+        flow.external_correlation_id = data.get("external_correlation_id", None)
+        flow.external_correlation_value = data.get("external_correlation_value", None)
 
         flow.status = data.get("status", "NEW")
 
@@ -431,6 +464,7 @@ class DataFlow:
                     (
                         external_reference_id VARCHAR(255) PRIMARY KEY,
                         external_correlation_id VARCHAR(255),
+                        external_correlation_value NUMERIC,
                         lookup_key VARCHAR(255),
                         status VARCHAR(50) NOT NULL,
                         start_timestamp TIMESTAMPTZ NOT NULL,
@@ -555,6 +589,7 @@ class DataFlow:
                     (
                         external_reference_id,
                         external_correlation_id,
+                        external_correlation_value,
                         lookup_key,
                         status,
                         start_timestamp,
@@ -567,6 +602,7 @@ class DataFlow:
                     (
                         :external_reference_id,
                         :external_correlation_id,
+                        :external_correlation_value,
                         :lookup_key,
                         :status,
                         :start_timestamp,
@@ -580,6 +616,7 @@ class DataFlow:
                     SET
                         lookup_key = EXCLUDED.lookup_key,
                         external_correlation_id = EXCLUDED.external_correlation_id,
+                        external_correlation_value = EXCLUDED.external_correlation_value,
                         status = EXCLUDED.status,
                         finish_timestamp = EXCLUDED.finish_timestamp,
                         retention = EXCLUDED.retention,
@@ -592,6 +629,8 @@ class DataFlow:
                         self.external_reference_id,
                     "external_correlation_id":
                         self.external_correlation_id,
+                    "external_correlation_value":
+                        self.external_correlation_value,
                     "lookup_key":
                         self.lookup_key,
                     "status":
@@ -676,7 +715,6 @@ class DataFlow:
         cls,
         engine,
         external_reference_id: str | None = None,
-        external_correlation_id: str | None = None,
         lookup_key: str | None = None,
         status: str | None = None,
         schema_name: str = DEFAULT_SCHEMA_NAME,
@@ -750,13 +788,14 @@ class DataFlow:
             flow = cls(
                 context=row["context_json"],
                 external_reference_id=row["external_reference_id"],
-                external_correlation_id=row["external_correlation_id"],
                 lookup_key=row["lookup_key"],
                 context_table_name=context_table_name,
                 step_table_name=step_table_name,
                 schema_name=schema_name,
             )
 
+            flow.external_correlation_id=row["external_correlation_id"]
+            flow.external_correlation_value=row["external_correlation_value"]
             flow.status = row["status"]
             flow.start_timestamp = row["start_timestamp"]
             flow.finish_timestamp = row["finish_timestamp"]
