@@ -490,7 +490,6 @@ class DataFlow:
                     (
                         id BIGSERIAL PRIMARY KEY,
                         external_reference_id VARCHAR(255) NOT NULL,
-                        external_correlation_id VARCHAR(255),
                         step_name VARCHAR(255) NOT NULL,
                         event_timestamp TIMESTAMPTZ NOT NULL,
                         payload_json JSONB NOT NULL,
@@ -645,7 +644,6 @@ class DataFlow:
                         INSERT INTO {self.schema_name}.{self.step_table_name}
                         (
                             external_reference_id,
-                            external_correlation_id,
                             step_name,
                             event_timestamp,
                             payload_json
@@ -653,7 +651,6 @@ class DataFlow:
                         VALUES
                         (
                             :external_reference_id,
-                            :external_correlation_id,
                             :step_name,
                             :event_timestamp,
                             CAST(:payload_json AS JSONB)
@@ -663,8 +660,6 @@ class DataFlow:
                     {
                         "external_reference_id":
                             self.external_reference_id,
-                        "external_correlation_id":
-                            self.external_correlation_id,
                         "step_name":
                             step["step_name"],
                         "event_timestamp":
