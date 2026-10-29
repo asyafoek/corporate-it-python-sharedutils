@@ -161,6 +161,11 @@ class DataFlow:
         self.status = "WAIT"
         self.finish_timestamp = datetime.now(timezone.utc)
 
+    def hold(self):
+
+        self.status = "HOLD"
+        self.finish_timestamp = datetime.now(timezone.utc)
+
     def skipped(self):
 
         self.status = "SKIPPED"
