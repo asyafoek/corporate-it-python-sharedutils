@@ -19,6 +19,7 @@ class DataFlow:
         self,
         context: dict | None = None,
         external_reference_id: str | None = None,
+        external_correlation_id: str | None = None,
         lookup_key: str | None = None,
         context_table_name: str | None = None,
         schema_name: str | None = None,
@@ -27,6 +28,10 @@ class DataFlow:
 
         self.external_reference_id = (
             external_reference_id or str(uuid4())
+        )
+
+        self.external_correlation_id = (
+            external_correlation_id
         )
 
         self.lookup_key = lookup_key
@@ -143,24 +148,17 @@ class DataFlow:
 
         self.status = "OPEN"
 
-    def closed(self):
+    def buy(self):
 
-        self.status = "CLOSED"
-        self.finish_timestamp = datetime.now(timezone.utc)
+        self.status = "BUY"
 
-    def aborted(self):
+    def sell(self):
 
-        self.status = "ABORTED"
-        self.finish_timestamp = datetime.now(timezone.utc)
+        self.status = "SELL"
 
-    def rejected(self):
+    def wait(self):
 
-        self.status = "REJECTED"
-        self.finish_timestamp = datetime.now(timezone.utc)
-
-    def completed(self):
-
-        self.status = "COMPLETED"
+        self.status = "WAIT"
         self.finish_timestamp = datetime.now(timezone.utc)
 
     def skipped(self):
@@ -168,14 +166,10 @@ class DataFlow:
         self.status = "SKIPPED"
         self.finish_timestamp = datetime.now(timezone.utc)
 
-    def success(self):
 
-        self.status = "SUCCESS"
-        self.finish_timestamp = datetime.now(timezone.utc)
+    def rejected(self):
 
-    def failed(self):
-
-        self.status = "FAILED"
+        self.status = "REJECTED"
         self.finish_timestamp = datetime.now(timezone.utc)
 
     def pause(self):
@@ -192,6 +186,32 @@ class DataFlow:
 
         self.status = "IN_PROGRESS"
         self.finish_timestamp = None
+
+
+    def closed(self):
+
+        self.status = "CLOSED"
+        self.finish_timestamp = datetime.now(timezone.utc)
+
+    def aborted(self):
+
+        self.status = "ABORTED"
+        self.finish_timestamp = datetime.now(timezone.utc)
+
+    def completed(self):
+
+        self.status = "COMPLETED"
+        self.finish_timestamp = datetime.now(timezone.utc)
+
+    def success(self):
+
+        self.status = "SUCCESS"
+        self.finish_timestamp = datetime.now(timezone.utc)
+
+    def failed(self):
+
+        self.status = "FAILED"
+        self.finish_timestamp = datetime.now(timezone.utc)
 
 
     @property
@@ -278,6 +298,7 @@ class DataFlow:
         print("=" * 120)
 
         print(f"external_reference_id : {self.external_reference_id}")
+        print(f"external_correlation_id : {self.external_correlation_id}")
         print(f"lookup_key : {self.lookup_key}")
         print(f"status                : {self.status}")
         print(f"start_timestamp        : {self.start_timestamp}")
@@ -304,6 +325,7 @@ class DataFlow:
 
         return {
             "external_reference_id": self.external_reference_id,
+            "external_correlation_id": self.external_correlation_id,
             "lookup_key": self.lookup_key,
             "status": self.status,
             "start_timestamp": self.start_timestamp.isoformat(),
@@ -338,6 +360,9 @@ class DataFlow:
             context=data.get("context"),
             external_reference_id=data.get(
                 "external_reference_id"
+            ),
+            external_correlation_id=data.get(
+                "external_correlation_id"
             ),
             lookup_key=data.get("lookup_key"),
         )
@@ -400,6 +425,7 @@ class DataFlow:
                     {schema_name}.{context_table_name}
                     (
                         external_reference_id VARCHAR(255) PRIMARY KEY,
+                        external_correlation_id VARCHAR(255),
                         lookup_key VARCHAR(255),
                         status VARCHAR(50) NOT NULL,
                         start_timestamp TIMESTAMPTZ NOT NULL,
@@ -441,11 +467,25 @@ class DataFlow:
             conn.execute(
                 text(
                     f"""
+                    CREATE INDEX IF NOT EXISTS
+                    idx_{context_table_name}_external_correlation_id
+                    ON {schema_name}.{context_table_name}
+                    (
+                        external_correlation_id
+                    )
+                    """
+                )
+            )
+
+            conn.execute(
+                text(
+                    f"""
                     CREATE TABLE IF NOT EXISTS
                     {schema_name}.{step_table_name}
                     (
                         id BIGSERIAL PRIMARY KEY,
                         external_reference_id VARCHAR(255) NOT NULL,
+                        external_correlation_id VARCHAR(255),
                         step_name VARCHAR(255) NOT NULL,
                         event_timestamp TIMESTAMPTZ NOT NULL,
                         payload_json JSONB NOT NULL,
@@ -510,6 +550,7 @@ class DataFlow:
                     INSERT INTO {self.schema_name}.{self.context_table_name}
                     (
                         external_reference_id,
+                        external_correlation_id,
                         lookup_key,
                         status,
                         start_timestamp,
@@ -521,6 +562,7 @@ class DataFlow:
                     VALUES
                     (
                         :external_reference_id,
+                        :external_correlation_id,
                         :lookup_key,
                         :status,
                         :start_timestamp,
@@ -533,6 +575,7 @@ class DataFlow:
                     DO UPDATE
                     SET
                         lookup_key = EXCLUDED.lookup_key,
+                        external_correlation_id = EXCLUDED.external_correlation_id,
                         status = EXCLUDED.status,
                         finish_timestamp = EXCLUDED.finish_timestamp,
                         retention = EXCLUDED.retention,
@@ -543,6 +586,8 @@ class DataFlow:
                 {
                     "external_reference_id":
                         self.external_reference_id,
+                    "external_correlation_id":
+                        self.external_correlation_id,
                     "lookup_key":
                         self.lookup_key,
                     "status":
@@ -559,23 +604,6 @@ class DataFlow:
                         json.dumps(self.context),
                 },
             )
-
-            # alle steps opnieuw schrijven
-
-            # conn.execute(
-            #     text(
-            #         f"""
-            #         DELETE
-            #         FROM {self.schema_name}.{self.step_table_name}
-            #         WHERE external_reference_id =
-            #             :external_reference_id
-            #         """
-            #     ),
-            #     {
-            #         "external_reference_id":
-            #             self.external_reference_id,
-            #     },
-            # )
 
             existing_steps = conn.execute(
                 text(
@@ -599,39 +627,6 @@ class DataFlow:
                 for row in existing_steps
             }            
 
-            # for step in self.steps:
-
-            #     conn.execute(
-            #         text(
-            #             f"""
-            #             INSERT INTO {self.schema_name}.{self.step_table_name}
-            #             (
-            #                 external_reference_id,
-            #                 step_name,
-            #                 event_timestamp,
-            #                 payload_json
-            #             )
-            #             VALUES
-            #             (
-            #                 :external_reference_id,
-            #                 :step_name,
-            #                 :event_timestamp,
-            #                 CAST(:payload_json AS JSONB)
-            #             )
-            #             """
-            #         ),
-            #         {
-            #             "external_reference_id":
-            #                 self.external_reference_id,
-            #             "step_name":
-            #                 step["step_name"],
-            #             "event_timestamp":
-            #                 step["event_timestamp"],
-            #             "payload_json":
-            #                 json.dumps(step["payload"]),
-            #         },
-            #     )
-
             for step in self.steps:
 
                 step_key = step["step_name"]
@@ -645,6 +640,7 @@ class DataFlow:
                         INSERT INTO {self.schema_name}.{self.step_table_name}
                         (
                             external_reference_id,
+                            external_correlation_id,
                             step_name,
                             event_timestamp,
                             payload_json
@@ -652,6 +648,7 @@ class DataFlow:
                         VALUES
                         (
                             :external_reference_id,
+                            :external_correlation_id,
                             :step_name,
                             :event_timestamp,
                             CAST(:payload_json AS JSONB)
@@ -661,6 +658,8 @@ class DataFlow:
                     {
                         "external_reference_id":
                             self.external_reference_id,
+                        "external_correlation_id":
+                            self.external_correlation_id,
                         "step_name":
                             step["step_name"],
                         "event_timestamp":
@@ -677,6 +676,7 @@ class DataFlow:
         cls,
         engine,
         external_reference_id: str | None = None,
+        external_correlation_id: str | None = None,
         lookup_key: str | None = None,
         status: str | None = None,
         schema_name: str = DEFAULT_SCHEMA_NAME,
@@ -750,6 +750,7 @@ class DataFlow:
             flow = cls(
                 context=row["context_json"],
                 external_reference_id=row["external_reference_id"],
+                external_correlation_id=row["external_correlation_id"],
                 lookup_key=row["lookup_key"],
                 context_table_name=context_table_name,
                 step_table_name=step_table_name,
