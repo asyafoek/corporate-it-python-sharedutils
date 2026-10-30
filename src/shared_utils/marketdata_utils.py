@@ -10,13 +10,14 @@ from decimal import Decimal
 from sqlalchemy import text
 from zoneinfo import ZoneInfo
 
-
-
 from datetime import (
     datetime,
     UTC,
-    timedelta
+    timedelta,
+    timezone
 )
+
+from dateutil.relativedelta import relativedelta
 
 from shared_utils.postgres_utils import (
     get_default_engine,
@@ -26,10 +27,6 @@ from shared_utils.postgres_utils import (
     store_dicts_into_table,
 )
 
-from datetime import (
-    datetime,
-    timezone
-)
 
 
 
@@ -3381,9 +3378,6 @@ def build_run_id(
     )
 
 
-from zoneinfo import ZoneInfo
-from datetime import datetime, UTC
-
 def get_session_window(
     engine,
     market,
@@ -4990,4 +4984,332 @@ def get_trading_horizons(
 
     return rows or []
 
-    
+
+
+def _retention_to_timedelta(
+    retention: str,
+):
+
+    retention = retention.strip().lower()
+
+    replacements = {
+        "millisecond": "ms",
+        "milliseconds": "ms",
+        "second": "s",
+        "seconds": "s",
+        "minute": "m",
+        "minutes": "m",
+        "hour": "h",
+        "hours": "h",
+        "day": "d",
+        "days": "d",
+        "week": "w",
+        "weeks": "w",
+        "month": "mo",
+        "months": "mo",
+        "year": "y",
+        "years": "y",
+    }
+
+    for suffix, shorthand in replacements.items():
+
+        if retention.endswith(suffix):
+
+            retention = (
+                retention[:-len(suffix)]
+                + shorthand
+            )
+
+            break
+
+    if retention.endswith("ms"):
+        return timedelta(
+            milliseconds=int(retention[:-2])
+        )
+
+    if retention.endswith("s"):
+        return timedelta(
+            seconds=int(retention[:-1])
+        )
+
+    if retention.endswith("m"):
+        return timedelta(
+            minutes=int(retention[:-1])
+        )
+
+    if retention.endswith("h"):
+        return timedelta(
+            hours=int(retention[:-1])
+        )
+
+    if retention.endswith("d"):
+        return timedelta(
+            days=int(retention[:-1])
+        )
+
+    if retention.endswith("w"):
+        return timedelta(
+            weeks=int(retention[:-1])
+        )
+
+    if retention.endswith("mo"):
+        return relativedelta(
+            months=int(retention[:-2])
+        )
+
+    if retention.endswith("y"):
+        return relativedelta(
+            years=int(retention[:-1])
+        )
+
+    raise ValueError(
+        f"Unsupported retention value: {retention}"
+    )
+
+def is_trading_day(
+    engine,
+    market_details,
+    trade_date,
+):
+    weekday = trade_date.weekday()
+
+    trading_day = {
+        0: market_details["trading_days_monday"],
+        1: market_details["trading_days_tuesday"],
+        2: market_details["trading_days_wednesday"],
+        3: market_details["trading_days_thursday"],
+        4: market_details["trading_days_friday"],
+        5: market_details["trading_days_saturday"],
+        6: market_details["trading_days_sunday"],
+    }[weekday]
+
+    if not trading_day:
+        return False
+
+    holiday_sql = """
+    SELECT
+        status
+    FROM raw.massive_all_market_holidays_persisted_1
+    WHERE date = :trade_date
+    LIMIT 1
+    """
+
+    rows = select_to_json(
+        engine,
+        holiday_sql,
+        {
+            "trade_date": trade_date,
+        },
+    )
+
+    if not rows:
+        return True
+
+    return rows[0]["status"] != "closed"
+
+
+def calculate_cutoff_window(
+    engine,
+    market,
+    trading_horizon,
+    reference_timestamp,
+):
+    trading_horizon_config = next(
+        row
+        for row in get_trading_horizons(engine)
+        if row["name"].lower()
+        == trading_horizon.lower()
+    )
+
+    maximum_retention = (
+        trading_horizon_config[
+            "maximum_retention"
+        ]
+    )
+
+    execution_offset = (
+        trading_horizon_config[
+            "execution_offset"
+        ]
+    )
+
+    market_details = next(
+        row
+        for row in get_market_details(engine)
+        if row["asset_class"].lower()
+        == market.lower()
+    )
+
+    retention_delta = (
+        _retention_to_timedelta(
+            maximum_retention
+        )
+    )
+
+    execution_offset_delta = (
+        _retention_to_timedelta(
+            execution_offset
+        )
+    )
+
+    last_session = (
+        market_details[
+            "market_hours_sessions"
+        ][-1]
+    )
+
+    session_timezone = ZoneInfo(
+        last_session["timezone"]
+    )
+
+    expiration_utc = (
+        datetime.fromtimestamp(
+            reference_timestamp / 1000,
+            UTC
+        )
+        + retention_delta
+    )
+
+    expiration_date = (
+        expiration_utc
+        .astimezone(
+            session_timezone
+        )
+        .date()
+    )
+
+    #
+    # laatste trading day op of voor
+    # expiration
+    #
+    trading_date = expiration_date
+
+    while not is_trading_day(
+        engine,
+        market_details,
+        trading_date,
+    ):
+        trading_date -= timedelta(
+            days=1
+        )
+
+    holiday_rows = select_to_json(
+        engine,
+        """
+        SELECT *
+        FROM raw.massive_all_market_holidays_persisted_1
+        WHERE date = :trade_date
+        LIMIT 1
+        """,
+        {
+            "trade_date": trading_date,
+        },
+    )
+
+    holiday = (
+        holiday_rows[0]
+        if holiday_rows
+        else None
+    )
+
+    #
+    # Early close gebruiken indien aanwezig
+    #
+    if (
+        holiday
+        and holiday["status"]
+        == "early-close"
+        and holiday["close"]
+    ):
+        session_end_utc = (
+            holiday["close"]
+        )
+
+        if isinstance(
+            session_end_utc,
+            str,
+        ):
+            session_end_utc = (
+                datetime.fromisoformat(
+                    session_end_utc
+                )
+            )
+
+    else:
+
+        session_end_time = (
+            datetime.strptime(
+                last_session["end"],
+                "%H:%M:%S",
+            ).time()
+        )
+
+        session_end_local = (
+            datetime.combine(
+                trading_date,
+                session_end_time,
+                tzinfo=session_timezone,
+            )
+        )
+
+        session_end_utc = (
+            session_end_local
+            .astimezone(UTC)
+        )
+
+    cutoff = (
+        session_end_utc
+        - execution_offset_delta
+    )
+
+    #
+    # cutoff moet ook
+    # op een trading day liggen
+    #
+    while True:
+
+        cutoff_date = (
+            cutoff
+            .astimezone(
+                session_timezone
+            )
+            .date()
+        )
+
+        if is_trading_day(
+            engine,
+            market_details,
+            cutoff_date,
+        ):
+            return int(
+                cutoff.timestamp()
+                * 1000
+            )
+
+        cutoff -= timedelta(
+            days=1
+        )
+
+
+def calculate_retention_for_cutoff(
+    start_timestamp: datetime,
+    cutoff_timestamp: datetime,
+) -> str:
+
+    if cutoff_timestamp <= start_timestamp:
+        raise ValueError(
+            "cutoff_timestamp must be after start_timestamp"
+        )
+
+    delta = (
+        cutoff_timestamp
+        - start_timestamp
+    )
+
+    milliseconds = int(
+        delta.total_seconds()
+        * 1000
+    )
+
+    return f"{milliseconds}ms"
+
