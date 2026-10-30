@@ -4972,3 +4972,22 @@ def get_session_scope(
     return None
 
 
+def get_trading_horizons(
+    engine,
+):
+    sql = """
+    SELECT
+        *
+    FROM raw.idts_all_reference_trading_persisted_1
+    ORDER BY sort_order
+    """
+
+    rows = select_to_json(
+        engine,
+        sql,
+        {}
+    )
+
+    return rows or []
+
+    

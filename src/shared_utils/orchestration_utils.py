@@ -2,6 +2,9 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from datetime import timedelta
+from dateutil.relativedelta import relativedelta
+from typing import Union
+
 from pprint import pprint
 from uuid import uuid4
 
@@ -223,12 +226,44 @@ class DataFlow:
 
         return self.finish_timestamp is not None
 
+
+    def normalize_retention(self, retention: str) -> str:
+        retention = retention.strip().lower()
+
+        replacements = {
+            "millisecond": "ms",
+            "milliseconds": "ms",
+            "second": "s",
+            "seconds": "s",
+            "minute": "m",
+            "minutes": "m",
+            "hour": "h",
+            "hours": "h",
+            "day": "d",
+            "days": "d",
+            "week": "w",
+            "weeks": "w",
+            "month": "mo",
+            "months": "mo",
+            "year": "y",
+            "years": "y",
+        }
+
+        for suffix, shorthand in replacements.items():
+            if retention.endswith(suffix):
+                return (
+                    retention[: -len(suffix)]
+                    + shorthand
+                )
+
+        return retention
+
     def _retention_to_timedelta(
         self,
         retention: str,
-    ) -> timedelta:
+    ) -> Union[timedelta, relativedelta]:
 
-        retention = retention.strip().lower()
+        retention = self.normalize_retention(retention.strip().lower())
 
         if retention.endswith("ms"):
             return timedelta(
@@ -254,6 +289,19 @@ class DataFlow:
             return timedelta(
                 days=int(retention[:-1])
             )
+
+        if retention.endswith("w"):
+            return timedelta(
+                weeks=int(retention[:-1])
+            )
+
+        if retention.endswith("mo"):
+            return relativedelta(
+                months=int(retention[:-2])
+            )
+
+        if retention.endswith("y"):
+            return relativedelta(years=int(retention[:-1]))
 
         raise ValueError(
             f"Unsupported retention value: {retention}"
