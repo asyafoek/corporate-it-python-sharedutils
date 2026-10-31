@@ -5162,25 +5162,36 @@ def calculate_cutoff_window(
         last_session["timezone"]
     )
 
+        #
+    # Gebruik de trade day van de flow
+    # en zet tijd altijd op 00:00:00
+    #
+    flow_timestamp_utc = datetime.fromtimestamp(
+        reference_timestamp / 1000,
+        UTC
+    )
+
+    flow_day_utc = flow_timestamp_utc.replace(
+        hour=0,
+        minute=0,
+        second=0,
+        microsecond=0,
+    )
+
     expiration_utc = (
-        datetime.fromtimestamp(
-            reference_timestamp / 1000,
-            UTC
-        )
+        flow_day_utc
         + retention_delta
     )
 
     expiration_date = (
         expiration_utc
-        .astimezone(
-            session_timezone
-        )
+        .astimezone(session_timezone)
         .date()
     )
 
     #
-    # laatste trading day op of voor
-    # expiration
+    # Zoek eerstvolgende trading day
+    # op of NA expiration_date
     #
     trading_date = expiration_date
 
@@ -5189,9 +5200,10 @@ def calculate_cutoff_window(
         market_details,
         trading_date,
     ):
-        trading_date -= timedelta(
+        trading_date += timedelta(
             days=1
         )
+
 
     holiday_rows = select_to_json(
         engine,
@@ -5286,7 +5298,7 @@ def calculate_cutoff_window(
                 * 1000
             )
 
-        cutoff -= timedelta(
+        cutoff += timedelta(
             days=1
         )
 
