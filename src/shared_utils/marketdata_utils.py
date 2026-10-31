@@ -5098,7 +5098,7 @@ def is_trading_day(
         engine,
         holiday_sql,
         {
-            "trade_date": trade_date,
+            "trade_date": trade_date.isoformat(),
         },
     )
 
@@ -5202,7 +5202,7 @@ def calculate_cutoff_window(
         LIMIT 1
         """,
         {
-            "trade_date": trading_date,
+            "trade_date": trading_date.isoformat(),
         },
     )
 
