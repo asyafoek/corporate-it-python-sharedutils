@@ -5108,6 +5108,7 @@ def is_trading_day(
     return rows[0]["status"] != "closed"
 
 
+
 def calculate_cutoff_window(
     engine,
     market,
@@ -5121,18 +5122,6 @@ def calculate_cutoff_window(
         == trading_horizon.lower()
     )
 
-    maximum_retention = (
-        trading_horizon_config[
-            "maximum_retention"
-        ]
-    )
-
-    execution_offset = (
-        trading_horizon_config[
-            "execution_offset"
-        ]
-    )
-
     market_details = next(
         row
         for row in get_market_details(engine)
@@ -5140,174 +5129,152 @@ def calculate_cutoff_window(
         == market.lower()
     )
 
-    retention_delta = (
-        _retention_to_timedelta(
-            maximum_retention
-        )
+    retention_delta = _retention_to_timedelta(
+        trading_horizon_config[
+            "maximum_retention"
+        ]
     )
 
-    execution_offset_delta = (
-        _retention_to_timedelta(
-            execution_offset
-        )
-    )
-
-    last_session = (
-        market_details[
-            "market_hours_sessions"
-        ][-1]
-    )
-
-    session_timezone = ZoneInfo(
-        last_session["timezone"]
-    )
-
-        #
-    # Gebruik de trade day van de flow
-    # en zet tijd altijd op 00:00:00
-    #
-    flow_timestamp_utc = datetime.fromtimestamp(
+    start_utc = datetime.fromtimestamp(
         reference_timestamp / 1000,
-        UTC
-    )
-
-    flow_day_utc = flow_timestamp_utc.replace(
-        hour=0,
-        minute=0,
-        second=0,
-        microsecond=0,
+        UTC,
     )
 
     expiration_utc = (
-        flow_day_utc
+        start_utc
         + retention_delta
     )
 
-    expiration_date = (
-        expiration_utc
-        .astimezone(session_timezone)
-        .date()
-    )
+    matched_session_timezone = None
+    matched_session_end_local = None
 
-    #
-    # Zoek eerstvolgende trading day
-    # op of NA expiration_date
-    #
-    trading_date = expiration_date
-
-    while not is_trading_day(
-        engine,
-        market_details,
-        trading_date,
-    ):
-        trading_date += timedelta(
-            days=1
+    for session in market_details[
+        "market_hours_sessions"
+    ]:
+        session_timezone = ZoneInfo(
+            session["timezone"]
         )
 
-
-    holiday_rows = select_to_json(
-        engine,
-        """
-        SELECT *
-        FROM raw.massive_all_market_holidays_persisted_1
-        WHERE date = :trade_date
-        LIMIT 1
-        """,
-        {
-            "trade_date": trading_date.isoformat(),
-        },
-    )
-
-    holiday = (
-        holiday_rows[0]
-        if holiday_rows
-        else None
-    )
-
-    #
-    # Early close gebruiken indien aanwezig
-    #
-    if (
-        holiday
-        and holiday["status"]
-        == "early-close"
-        and holiday["close"]
-    ):
-        session_end_utc = (
-            holiday["close"]
-        )
-
-        if isinstance(
-            session_end_utc,
-            str,
-        ):
-            session_end_utc = (
-                datetime.fromisoformat(
-                    session_end_utc
-                )
+        start_local = (
+            start_utc.astimezone(
+                session_timezone
             )
+        )
 
-    else:
-
-        session_end_time = (
+        session_start_time = (
             datetime.strptime(
-                last_session["end"],
+                session["start"],
                 "%H:%M:%S",
             ).time()
         )
 
+        session_end_time = (
+            datetime.strptime(
+                session["end"],
+                "%H:%M:%S",
+            ).time()
+        )
+
+        session_start_local = (
+            datetime.combine(
+                start_local.date(),
+                session_start_time,
+                tzinfo=session_timezone,
+            )
+        )
+
         session_end_local = (
             datetime.combine(
-                trading_date,
+                start_local.date(),
                 session_end_time,
                 tzinfo=session_timezone,
             )
         )
 
-        session_end_utc = (
-            session_end_local
-            .astimezone(UTC)
-        )
-
-    cutoff = (
-        session_end_utc
-        - execution_offset_delta
-    )
-
-    #
-    # cutoff moet ook
-    # op een trading day liggen
-    #
-    while True:
-
-        cutoff_date = (
-            cutoff
-            .astimezone(
+        if (
+            session_start_local
+            <= start_local
+            <= session_end_local
+        ):
+            matched_session_timezone = (
                 session_timezone
             )
-            .date()
-        )
 
-        if is_trading_day(
-            engine,
-            market_details,
-            cutoff_date,
-        ):
-            return int(
-                cutoff.timestamp()
-                * 1000
+            matched_session_end_local = (
+                session_end_local
             )
 
-        cutoff += timedelta(
+            break
+
+    if matched_session_timezone is None:
+        raise ValueError(
+            f"No matching session found "
+            f"for market={market}"
+        )
+
+    if trading_horizon_config.get(
+        "exit_at_session_close",
+        False,
+    ):
+        session_close_offset_delta = (
+            _retention_to_timedelta(
+                trading_horizon_config[
+                    "session_close_offset"
+                ]
+            )
+        )
+
+        session_expiration_utc = (
+            matched_session_end_local
+            .astimezone(UTC)
+            - session_close_offset_delta
+        )
+
+        expiration_utc = min(
+            expiration_utc,
+            session_expiration_utc,
+        )
+
+    expiration_local = (
+        expiration_utc.astimezone(
+            matched_session_timezone
+        )
+    )
+
+    expiration_date = (
+        expiration_local.date()
+    )
+
+    while not is_trading_day(
+        engine,
+        market_details,
+        expiration_date,
+    ):
+        expiration_date += timedelta(
             days=1
         )
 
+    expiration_local = datetime.combine(
+        expiration_date,
+        expiration_local.time(),
+        tzinfo=matched_session_timezone,
+    )
+
+    expiration_utc = (
+        expiration_local.astimezone(
+            UTC
+        )
+    )
+
+    return int(
+        expiration_utc.timestamp()
+        * 1000
+    )
 
 def calculate_retention_for_cutoff(
     start_timestamp: datetime,
     cutoff_timestamp: datetime,
 ) -> str:
-
     if cutoff_timestamp <= start_timestamp:
         raise ValueError(
             "cutoff_timestamp must be after start_timestamp"
@@ -5324,4 +5291,3 @@ def calculate_retention_for_cutoff(
     )
 
     return f"{milliseconds}ms"
-
