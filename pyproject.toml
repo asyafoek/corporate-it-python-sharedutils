@@ -19,7 +19,8 @@ dependencies = [
     "psycopg2-binary==2.9.10",
     "prometheus-client==0.21.1",
     "requests>=2.0.0",
-    "kubernetes>=34.0.0" 
+    "kubernetes>=34.0.0",
+    "pycountry-convert-ng>=2026.9.3" 
 ]
 
 [tool.setuptools.packages.find]

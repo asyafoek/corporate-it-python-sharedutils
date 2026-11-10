@@ -27,7 +27,9 @@ from shared_utils.postgres_utils import (
     store_dicts_into_table,
 )
 
-
+import requests
+import pycountry_convert as pc
+# import redis
 
 
 # LOOKBACK_DAYS = 7
@@ -5291,3 +5293,190 @@ def calculate_retention_for_cutoff(
     )
 
     return f"{milliseconds}ms"
+
+
+
+def _resolve_region(country_code: str) -> str:
+    # Jij definieert en onderhoudt deze mapping op basis van brokerregels.
+    # Geen geografische standaard, maar jouw platformbeleid.
+    if country_code in {
+        "AT", "BE", "BG", "HR", "CY", "CZ", "DK", "EE", "FI", "FR",
+        "DE", "GR", "HU", "IE", "IT", "LV", "LT", "LU", "MT", "NL",
+        "PL", "PT", "RO", "SK", "SI", "SE",  # EU27
+        "IS", "LI", "NO",                     # EER (niet-EU)
+    }:
+        return "EEA"
+
+    if country_code == "GB":
+        return "UK"
+
+    if country_code == "US":
+        return "US"
+
+    if country_code == "MY":
+        return "MY"
+
+    return "ROW"
+
+
+def get_location_info() -> dict:
+    data = requests.get(
+        "https://ipapi.co/json/",
+        timeout=5,
+    ).json()
+
+    timezone = data["timezone"]
+    country_code = data["country_code"]
+
+    offset = (
+        datetime.now(ZoneInfo(timezone)).utcoffset().total_seconds() / 3600
+    )
+
+    try:
+        continent_code = pc.country_alpha2_to_continent_code(country_code)
+    except KeyError:
+        continent_code = "UNKNOWN"
+
+    return {
+        "country": data["country_name"],
+        "country_code": country_code,
+        "continent_code": continent_code,
+        "region_code": _resolve_region(country_code),
+        "city": data["city"],
+        "timezone": timezone,
+        "phone_prefix": data["country_calling_code"],
+        "utc_offset_hours": offset,
+    }
+
+
+def get_trading_eligibility(
+    profile_name: str, 
+    broker_name: str,
+    account_mode: str,
+    engine,
+    redis_client
+) -> dict:
+    """
+    Determines whether a profile is allowed to trade based on its location
+    and the broker configuration.
+    
+    Reuses select_to_json and get_location_info.
+    Stores the result in Redis with a TTL derived from the database.
+
+    # status = get_trading_eligibility(...)
+
+    # if status["eligibility"].get("allowed_to_trade"):
+    #     print("Traden is toegestaan op deze locatie!")
+    #     # Plaats order...
+    # else:
+    #     reason = status["eligibility"].get("reason", "Regio niet toegestaan")
+    #     print(f"Traden geblokkeerd: {reason}")
+    #
+    # Returns
+    #
+    # {
+    #     "eligibility": {
+    #         "allowed_to_trade": True,
+    #         "countries_allowed": ["NL", "MY", "EEA"],
+    #         "country": "Netherlands",
+    #         "country_code": "NL",
+    #         "continent_code": "EU",
+    #         "region_code": "EEA",
+    #         "city": "Amsterdam",
+    #         "timezone": "Europe/Amsterdam",
+    #         "phone_prefix": "+31",
+    #         "utc_offset_hours": 1.0
+    #     }
+    # }
+
+    """
+
+
+
+    # Include broker_name and account_mode in the cache key because they form 
+    # the unique constraint in the database.
+    cache_key = f"trade_eligibility:{profile_name}:{broker_name}:{account_mode}"
+    
+    # 1. Try to read from Redis cache (skips API and DB calls if present).
+    cached_data = redis_client.get(cache_key)
+    if cached_data:
+        return json.loads(cached_data)
+        
+    # 2. Fetch only countries_allowed and the refresh interval from the database.
+    sql = """
+        SELECT 
+            countries_allowed, 
+            countries_refresh_interval 
+        FROM raw.idts_all_application_accounts_persisted_1 
+        WHERE profile_name = :profile_name 
+          AND broker_name = :broker_name
+          AND account_mode = :account_mode
+        LIMIT 1
+    """
+    
+    rows = select_to_json(
+        engine,
+        sql,
+        {
+            "profile_name": profile_name,
+            "broker_name": broker_name,
+            "account_mode": account_mode
+        }
+    )
+    
+    if not rows:
+        # Fallback when no configuration exists for this profile/broker.
+        return {
+            "eligibility": {
+                "allowed_to_trade": False,
+                "reason": "No configuration found for this profile/broker/account_mode."
+            }
+        }
+        
+    countries_allowed = rows[0]["countries_allowed"]
+    refresh_interval = rows[0]["countries_refresh_interval"]
+    
+    # 3. Get the full location dictionary (reusing existing Python logic).
+    loc = get_location_info()
+    
+    # 4. Determine whether trading is allowed.
+    # Ensure countries_allowed is a list, even if stored as a JSON string.
+    if isinstance(countries_allowed, str):
+        try:
+            countries_allowed = json.loads(countries_allowed)
+        except Exception:
+            countries_allowed = [countries_allowed]
+
+    # If jsonb was already parsed by the DB driver into a list, it will just use that.
+    # If it's None, we default to an empty list to prevent errors.
+    if not countries_allowed:
+        countries_allowed = []
+
+    allowed_to_trade = (
+        loc["country_code"] in countries_allowed or 
+        loc["region_code"] in countries_allowed
+    )
+    
+    # 5. Build the final result inside an "eligibility" wrapper.
+    result = {
+        "eligibility": {
+            "allowed_to_trade": allowed_to_trade,
+            "countries_allowed": countries_allowed,
+            **loc
+        }
+    }
+    
+    # 6. Store in Redis with the TTL from the database.
+    # Since the column is 'text', we must safely convert it to int.
+    try:
+        ttl_seconds = int(refresh_interval)
+    except (ValueError, TypeError):
+        ttl_seconds = 3600 # Fallback to 1 hour if the string is invalid (e.g. "1 hour")
+
+    redis_client.setex(
+        cache_key,
+        ttl_seconds,
+        json.dumps(result)
+    )
+    
+    return result
