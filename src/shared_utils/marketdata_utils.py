@@ -29,6 +29,14 @@ from shared_utils.postgres_utils import (
 
 import requests
 import pycountry_convert as pc
+
+# import requests
+# import pycountry_convert as pc
+
+# from datetime import datetime
+# from zoneinfo import ZoneInfo
+
+
 # import redis
 
 
@@ -5319,34 +5327,161 @@ def _resolve_region(country_code: str) -> str:
     return "ROW"
 
 
-def get_location_info() -> dict:
+# def get_location_info() -> dict:
+#     data = requests.get(
+#         "https://ipapi.co/json/",
+#         timeout=5,
+#     ).json()
+
+#     timezone = data["timezone"]
+#     country_code = data["country_code"]
+
+#     offset = (
+#         datetime.now(ZoneInfo(timezone)).utcoffset().total_seconds() / 3600
+#     )
+
+#     try:
+#         continent_code = pc.country_alpha2_to_continent_code(country_code)
+#     except KeyError:
+#         continent_code = "UNKNOWN"
+
+#     return {
+#         "country": data["country_name"],
+#         "country_code": country_code,
+#         "continent_code": continent_code,
+#         "region_code": _resolve_region(country_code),
+#         "city": data["city"],
+#         "timezone": timezone,
+#         "phone_prefix": data["country_calling_code"],
+#         "utc_offset_hours": offset,
+#     }
+
+
+def _normalize_location(
+    *,
+    country,
+    country_code,
+    city,
+    timezone,
+    phone_prefix=""
+) -> dict:
+
+    try:
+        continent_code = (
+            pc.country_alpha2_to_continent_code(
+                country_code
+            )
+        )
+    except KeyError:
+        continent_code = "UNKNOWN"
+
+    offset = (
+        datetime.now(
+            ZoneInfo(timezone)
+        ).utcoffset().total_seconds()
+        / 3600
+    )
+
+    return {
+        "country": country,
+        "country_code": country_code,
+        "continent_code": continent_code,
+        "region_code": _resolve_region(country_code),
+        "city": city,
+        "timezone": timezone,
+        "phone_prefix": phone_prefix,
+        "utc_offset_hours": offset,
+    }
+
+
+def _location_from_ipapi_co() -> dict:
+
     data = requests.get(
         "https://ipapi.co/json/",
         timeout=5,
     ).json()
 
-    timezone = data["timezone"]
-    country_code = data["country_code"]
+    if data.get("error"):
+        raise RuntimeError(data)
 
-    offset = (
-        datetime.now(ZoneInfo(timezone)).utcoffset().total_seconds() / 3600
+    return _normalize_location(
+        country=data["country_name"],
+        country_code=data["country_code"],
+        city=data["city"],
+        timezone=data["timezone"],
+        phone_prefix=data.get(
+            "country_calling_code",
+            ""
+        )
     )
 
-    try:
-        continent_code = pc.country_alpha2_to_continent_code(country_code)
-    except KeyError:
-        continent_code = "UNKNOWN"
 
-    return {
-        "country": data["country_name"],
-        "country_code": country_code,
-        "continent_code": continent_code,
-        "region_code": _resolve_region(country_code),
-        "city": data["city"],
-        "timezone": timezone,
-        "phone_prefix": data["country_calling_code"],
-        "utc_offset_hours": offset,
-    }
+def _location_from_ipwhois() -> dict:
+
+    data = requests.get(
+        "https://ipwho.is/",
+        timeout=5,
+    ).json()
+
+    if not data.get("success", False):
+        raise RuntimeError(data)
+
+    return _normalize_location(
+        country=data["country"],
+        country_code=data["country_code"],
+        city=data["city"],
+        timezone=data["timezone"]["id"],
+        phone_prefix=data.get(
+            "calling_code",
+            ""
+        )
+    )
+
+
+def _location_from_ip_api() -> dict:
+
+    data = requests.get(
+        "http://ip-api.com/json/",
+        timeout=5,
+    ).json()
+
+    if data.get("status") != "success":
+        raise RuntimeError(data)
+
+    return _normalize_location(
+        country=data["country"],
+        country_code=data["countryCode"],
+        city=data["city"],
+        timezone=data["timezone"],
+        phone_prefix=""
+    )
+
+
+def get_location_info() -> dict:
+
+    providers = [
+        _location_from_ipapi_co,
+        _location_from_ipwhois,
+        _location_from_ip_api,
+    ]
+
+    errors = []
+
+    for provider in providers:
+
+        try:
+            return provider()
+
+        except Exception as exc:
+
+            errors.append(
+                f"{provider.__name__}: {exc}"
+            )
+
+    raise RuntimeError(
+        "All location providers failed: "
+        + " | ".join(errors)
+    )
 
 
 def get_trading_eligibility(
