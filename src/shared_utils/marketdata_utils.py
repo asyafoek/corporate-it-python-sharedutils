@@ -5646,3 +5646,4 @@ def get_fx_rate(timestamp_sec: int, from_ccy: str, to_ccy: str) -> float:
 
     res.raise_for_status()
 
+# print(get_fx_rate(1789308941161  , "usdc", "usd"))
