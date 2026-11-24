@@ -5615,3 +5615,33 @@ def get_trading_eligibility(
     )
     
     return result
+
+
+def get_fx_rate(timestamp_sec: int, from_ccy: str, to_ccy: str) -> float:
+    van = from_ccy.strip().lower()
+    naar = to_ccy.strip().lower()
+
+    # 1. Als bron- en doelvaluta gelijk zijn, is de koers altijd 1.0
+    if van == naar:
+        return 1.0
+
+    # 2. Zet milliseconden (13 cijfers) automatisch om naar seconden (10 cijfers) indien nodig
+    if timestamp_sec > 10_000_000_000:
+        timestamp_sec = timestamp_sec // 1000
+
+    datum = datetime.fromtimestamp(timestamp_sec, tz=timezone.utc).strftime("%Y-%m-%d")
+
+    # 3. Gebruik het v2 endpoint op api.frankfurter.dev (ondersteunt zowel fiat als USDC/USDT)
+    url = f"https://frankfurter.dev{van}/{naar}?date={datum}"
+    res = requests.get(url, timeout=10)
+
+    if res.status_code == 200:
+        return float(res.json()["rate"])
+
+    # Fallback voor als Frankfurter op een weekenddag geen koers heeft voor USDC <-> USD
+    if {van, naar} == {"usdc", "usd"}:
+        return 1.0
+
+    res.raise_for_status()
+
+    
